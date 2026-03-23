@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4. Rebase y Rewriting — Git Bootcamp</title>
+    <meta name="description" content="Domina las herramientas avanzadas de historia en Git: rebase y rebase interactivo.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .merge-graph {
+            font-family: monospace;
+            background: var(--surface2);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            color: var(--text2);
+            margin-top: 1rem;
+        }
+        .merge-graph .c { color: var(--secondary) } /* master/main */
+        .merge-graph .f { color: var(--accent) }    /* feature */
+        .merge-graph .r { color: var(--danger) }    /* rebased */
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html" class="active">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--danger)">
+        <i class="fa-solid fa-clock-rotate-left page-hero-icon" style="color: var(--danger)"></i>
+        <h1>Rebase y Reescribir</h1>
+        <p>Mantén un historial impecable y lineal del que estar orgulloso</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">4. Rebase</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 5: Reescribiendo la Historia (Rebase)</h2>
+        <p>Git te permite modificar los commits del historial antes de enviarlos remotamente. Esto no es solo por estética (el OCD del desarrollador); un historial limpio lineal donde cada commit funciona y expone un solo cambio atómico es muy valioso para la empresa al momento de revertir bugs (<i>regression testing</i> o <i>git bisect</i>).</p>
+
+        <h3>5.1 Un commit que me faltaba (amend)</h3>
+        <p>Hiciste un commit increíble llamado <code>feat: super backend form API endpoint</code>. Segundos después, ves que dejaste un <code>console.log()</code> tirado en el código, o un typo estúpido en el README.</p>
+        
+        <p>En lugar de hacer otro commit que diga <code>fix: quitar console.log que dejé en el anterior</code> (lo cual ensucia el historial de los demás), puedes <strong>"sumar"</strong> ese cambio a tu último commit, modificándolo y reescribiéndolo:</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># 1. Modifica en el Working directory y borra el console.log
+# 2. Haces git add de ese cambio (Staging)
+git add server.js
+
+# 3. Y ahora lo engarpas junto con el anterior:
+git commit --amend
+
+# Si solo es un cambio pequeño y tampoco querías cambiar el mensaje 
+# descriptivo de tu commit anterior, le pones:
+git commit --amend --no-edit</code></pre>
+        </div>
+
+        <div class="info-box danger">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                <strong>ATENCIÓN LA REGLA DE ORO DE GIT:</strong> <code>--amend</code>, <code>rebase</code>, y todas estas herramientas <strong>cambian el Hash SHA-1 de los commits</strong> de forma permanente (los destruyen y crean unos clónicos). <br><br>
+                Jamás debes reescribir historia que ya has pusheado y está en manos públicas/colaborativas, destrozarías las ramas de tus compañeros al generar divergencias y conflictos irresolubles. Solo reescribe lo que está local en tu ordenador en tu feature branch.
+            </div>
+        </div>
+
+        <h3>5.2 Entendiendo Git Rebase</h3>
+        <p>Has sacado tu rama <code>feature-A</code> de <code>main</code> el Lunes. El Martes, Roberto mete unos cambios masivos en <code>main</code>. Tú necesitas esos cambios de Roberto para probar si tu <code>feature-A</code> sigue funcionando o te lo ha roto todo.</p>
+        
+        <p>En este punto puedes hacer:</p>
+        <p>A) <code>git merge main</code> (estando en tu rama feature-A). Esto te creará un asqueroso "merge inverso" lleno de cruces en la gráfica.</p>
+        <p>B) <strong>Git Rebase: Arrancar tu rama de donde la creaste e "injertarla" mágicamente por delante de los commits de Roberto.</strong></p>
+
+        <div class="two-col mt-4">
+            <div class="mini-card">
+                <h5>1. El Escenario Inicial</h5>
+                <div class="merge-graph">
+<pre>
+      <span class="c">A---B---C (main de Roberto)</span>
+       \
+        <span class="f">X---Y (tu feature-A)</span>
+</pre>
+                </div>
+            </div>
+            
+            <div class="mini-card">
+                <h5>2. Tras ejecutar `git rebase main`</h5>
+                <div class="merge-graph">
+<pre>
+      <span class="c">A---B---C (main)</span>
+               \
+                <span class="r">X'---Y' (tu nueva feature-A)</span>
+
+(Tus commits antiguos X e Y ahora "rebotan" 
+o son "re-baseados" despues de C, con 
+nuevos ID Hash)
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <h4>Conflictos durante un Rebase</h4>
+        <p>El Rebase aplica tus commits X e Y, <strong>uno... a... uno... secuencialmente</strong> sobre la nueva base. Esto significa que Git puede detenerse y chillar de conflictos múltiples veces (uno por cada commit que está re-baseando).</p>
+        
+        <p>El flujo cuando te paras por conflicto es ligeramente distinto:</p>
+        <div class="code-block">
+            <pre><code class="language-bash"># Estás en feature-A
+git rebase main
+
+# - STOP - Conflicto en el commit "X" al reescribirlo.
+# Tú vas al código, lo editas, borras los &gt;&gt;&gt;&lt;&lt;&lt; y resuelves.
+# Y luego le das:
+git add fichero-arreglado.txt
+
+# Y en vez de hacer un simple commit como en merge, le dices 'sigue la rueda':
+git rebase --continue</code></pre>
+        </div>
+        <p>Git cogerá eso, cerrará el commit X' resuelto, y avanzará a re-aplicar Y'. Pasa algo? Lo repites. ¿Que te lías y el pánico se apodera? <code>git rebase --abort</code> y tu rama feature-A vieja y sana reaparecerá milagrosamente en el Lunes.</p>
+
+        <!-- EJERCICIO 7 -->
+        <div class="exercise-box" style="border-top-color: var(--danger)">
+            <h3 style="color: var(--danger)"><i class="fa-solid fa-code-commit"></i> EJERCICIO 7: Rebase Simple (Mudar tu rama)</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Rebasear tu features local para traer los cambios de main manteniendo tu código lineal.
+            </div>
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Estando en <code>main</code>, asegúrate de estar limpio. Crea un commit: <code>echo "1" > conteo.txt && git add . && git commit -m "main 1"</code></li>
+                <li>Saca tu rama paralela: <code>git switch -c feature-math</code></li>
+                <li>Haz un par de commits: 
+                    <code>echo "formula a" &gt; form.txt && git add . && git commit -m "add formula A"</code>
+                    <code>echo "formula b" &gt;&gt; form.txt && git add . && git commit -m "add formula B"</code>
+                </li>
+                <li>Ok, pausa. Vuelve a <code>main</code> y emula a Roberto metiendo cosas críticas.
+                    <code>git switch main</code>
+                    <code>echo "PARCHE CRITICO" &gt;&gt; conteo.txt && git commit -am "hotfix: parche de seguridad vital"</code>
+                </li>
+                <li>Tú necesitas ese <strong>PARCHE CRÍTICO</strong> para que tu rama de matemáticas no pete en preproducción. </li>
+                <li>Vuelve a tu rama: <code>git switch feature-math</code></li>
+                <li>Mágicamente múdate al futuro de main: <code>git rebase main</code></li>
+                <li>Visualiza tu historial: <code>git log --oneline --graph</code>. Verás que tu commit de fórmula 2 y 1 están encima del "hotfix parche" de Roberto. Una historia limpia.</li>
+            </ol>
+        </div>
+
+
+        <h3>5.3 El Superpoder: Rebase Interactivo (-i)</h3>
+        <p>El Rebase interactivo no solo sirve para saltar por encima de otras ramas. Se puede lanzar contra <strong>ti mismo (tus últimos 5 commits)</strong> para lavar, planchar y comprimir tu historial asqueroso lleno de "WIPs", "Fix", "test3" y convertirlos en una bella joya antes de mergetar a main.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># "Hey Git, quiero que rebases mis últimos 4 commits, y quiero el mando manual"
+git rebase -i HEAD~4</code></pre>
+        </div>
+
+        <p>Al hacer eso, Git abrirá un editor mostrando tus últimos 4 commits de abajo hacia arriba (más antiguos arriba). Algo así:</p>
+
+        <div class="code-block" style="border-left: 4px solid var(--purple)">
+            <pre><code class="language-git">pick d458a21 feat: login inicial api
+pick 88a31b2 wip: pruebas con el token de jwt
+pick 09ab31c fix: ahora si que pilla el token
+pick 22bd425 docs: añadir libreria install
+
+# Rebase 22bd425..d458a21 onto d458a21
+# Commands:
+# p, pick &lt;commit&gt; = use commit
+# r, reword &lt;commit&gt; = use commit, but edit the commit message
+# e, edit &lt;commit&gt; = use commit, but stop for amending
+# s, squash &lt;commit&gt; = use commit, but meld into previous commit
+# f, fixup &lt;commit&gt; = like "squash", but discard this commit's log message
+# d, drop &lt;commit&gt; = remove commit</code></pre>
+        </div>
+
+        <p>El poder está en la palabra <strong>"pick"</strong>. Tú vas a escribir y cambiar el texto (esto es VIM o VS Code) diciéndole a git qué tiene que hacer con la historia si estuviera viajando en el tiempo y reviviéndola:</p>
+
+        <ul>
+            <li><code>reword (r)</code>: Deja el código igual, pero haz que pare la máquina para yo escribir un título de commit de verdad y no "wip xdd".</li>
+            <li><code>squash (s)</code>: Cógelo y en vez de dejarlo como commit puro, amásalo contra el de arriba, fusionándolos. Muy usado para comprimir 4 fix de ortografía o sintaxis a la feature base.</li>
+            <li><code>drop (d)</code> o simplemente <b>borrar la línea en el editor</b>: Aniquila y extirpa ese commit y sus cambios del multiverso, como si nunca hubieran ocurrido en el sistema (ideal para cuando algo solo rompió y no quieres dejar constancia de la mancha de vergüenza).</li>
+        </ul>
+
+        <div class="info-box tip">
+            <span class="info-box-icon"><i class="fa-solid fa-magic"></i></span>
+            <div class="info-box-text">
+                En el 99% de los casos usarás la palabra <code>squash</code> contra un <code>pick</code> que esté arriba, fusionando los WIPs en una única "Feat: implementado pasarela stripe super robusta".
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <a href="ramas.html" class="btn btn-outline" style="min-width: 150px">
+                <i class="fa-solid fa-arrow-left"></i> Anterior: Ramas
+            </a>
+            <a href="remotos.html" class="btn btn-outline" style="min-width: 150px; justify-content: space-between">
+                Siguiente: Remotos y GitHub <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-bottom" style="border-top: none; padding-top: 0">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-templating.min.js"></script>
+</body>
+</html>

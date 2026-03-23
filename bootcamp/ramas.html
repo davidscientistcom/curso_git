@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3. Ramas y Merging — Git Bootcamp</title>
+    <meta name="description" content="Aprende a trabajar con ramas (branches) en Git, los tipos de merge y cómo resolver conflictos.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .merge-graph {
+            font-family: monospace;
+            background: var(--surface2);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            color: var(--text2);
+        }
+        .merge-graph .c { color: var(--secondary) } /* master/main */
+        .merge-graph .f { color: var(--accent) }    /* feature */
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html" class="active">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--warning)">
+        <i class="fa-solid fa-code-branch page-hero-icon" style="color: var(--warning)"></i>
+        <h1>Ramas y Merging</h1>
+        <p>Trabaja en paralelo. Falla rápido, arregla en aislamiento e integra seguro.</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">3. Ramas y Merge</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 4: Branches (El verdadero poder de Git)</h2>
+        <p>Una rama en Git es simplemente un <strong>puntero móvil ligero a un commit específico</strong>. Crear una rama es casi instantáneo y solo cuesta unos 41 bytes (40 caracteres del hash y un salto de línea). El concepto de "copiar toda la carpeta" (como hacía SVN) no existe aquí.</p>
+
+        <h3>4.1 Entendiendo HEAD</h3>
+        <p><code>HEAD</code> es otro puntero vital. <strong>HEAD apunta la rama en la que estás trabajando actualmente</strong>. Cuando haces <code>git log</code> ves el historial que va desde lo que está apuntando HEAD hacia atrás.</p>
+
+        <div class="info-box tip">
+            <span class="info-box-icon"><i class="fa-solid fa-star"></i></span>
+            <div class="info-box-text">
+                En Git moderno, cambiar de rama se hace con <strong><code>git switch</code></strong>. <br>
+                Antiguamente (y todavía se puede) se usaba <code>git checkout</code> para todo (cambiar de rama, descartar archivos, etc.). Switch es más seguro porque hace una sola cosa.
+            </div>
+        </div>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># Ver todas las ramas locales (* marca la tuya)
+git branch
+
+# Crear nueva rama (no te cambia a ella)
+git branch nueva-feature
+
+# Cambiar a la rama
+git switch nueva-feature
+
+# Crear y cambiar al mismo tiempo (¡SUPER ÚTIL!)
+git switch -c fix-bug-login
+
+# Renombrar rama actual
+git branch -m feature-login-mejorada
+
+# Eliminar rama (que ya mergeaste)
+git branch -d fix-bug-login
+
+# Eliminar a lo bruto (sin preguntar si está mergeada)
+git branch -D fix-bug-login</code></pre>
+        </div>
+
+        <h3>4.2 Feature Branch Workflow</h3>
+        <p>Nunca, y decimos, <strong>NUNCA</strong>, se desarrolla una nueva funcionalidad (feature) en la rama <code>main</code> (o master). <code>main</code> debería ser la fuente de verdad y una representación del código que está funcionando en Producción en este momento.</p>
+        
+        <p>El flujo es:</p>
+        <ol>
+            <li>Estás en `main` y está limpio.</li>
+            <li>Alguien reporta un bug o pide una nueva tabla en la UI.</li>
+            <li>Haces <code>git switch -c feature/nueva-tabla</code>.</li>
+            <li>Haces y commiteas todos tus cambios.</li>
+            <li>Testeas, si se te rompió algo "haces commit --amend". Estás en tu mundo, da igual las roturas.</li>
+            <li>Cuando funciona: vuelves a <code>main</code> y haces merge de tu feature.</li>
+        </ol>
+
+        <!-- EJERCICIO 5 -->
+        <div class="exercise-box" style="border-top-color: var(--warning)">
+            <h3 style="color: var(--warning)"><i class="fa-solid fa-dumbbell"></i> EJERCICIO 5: Crear y Navegar Ramas</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Crear diferentes mundos paralelos en tu código sin romper main.
+            </div>
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Ve a tu proyecto <code>mi-portafolio</code>.</li>
+                <li>Verifica tu rama actual (será main).</li>
+                <li>Crea y cambia a una rama nueva: <code>git switch -c feature-header</code></li>
+                <li>Abre <code>index.html</code>, añade una etiqueta <code>&lt;header&gt;</code> y guarda.</li>
+                <li>Haz commit: <code>git commit -am "feat: agregar banner de header"</code>.</li>
+                <li><strong>La magia de Git:</strong> Cambia temporalmente a main con <code>git switch main</code>.</li>
+                <li>Abre <code>index.html</code>. ¡Sorpresa! El header ha desaparecido. Tu disco duro físico acaba de mutar para reflejar la rama main.</li>
+                <li>Regresa a tu rama: <code>git switch feature-header</code>. Y tu header volverá a aparecer.</li>
+            </ol>
+        </div>
+
+        <h3>4.3 Merging (Combinando Mundos)</h3>
+        <p>Una vez terminada tu feature o solucionado tu bug en su rama aislada, llega el momento de la verdad.</p>
+        
+        <div class="info-box info">
+            <span class="info-box-icon"><i class="fa-solid fa-circle-info"></i></span>
+            <div class="info-box-text">
+                Para hacer un <code>merge</code> de la "rama B" hacia la "rama A", <strong>primero debes estar en la "rama A" (la que recibe)</strong> y luego ejecutar el comando merge pidiendo la "rama B".
+            </div>
+        </div>
+
+        <h4>Tipos de Merge:</h4>
+        
+        <div class="two-col mt-4">
+            <div class="mini-card">
+                <h5>1. Fast-Forward (ff)</h5>
+                <p style="margin-bottom: 1rem">Ocurre cuando la rama destino (p.ej `main`) <strong>no ha avanzado</strong> desde que sacaste la feature. Git simplemente "desliza" el puntero de main hacia adelante.</p>
+                <div class="merge-graph">
+<pre>
+   <span class="c">C1---C2 (main)</span>
+         \
+          <span class="f">F1---F2 (feat)</span>
+
+git merge feat
+
+<span class="c">C1---C2---F1---F2 (main, feat)</span>
+</pre>
+                </div>
+            </div>
+            
+            <div class="mini-card">
+                <h5>2. Three-Way Merge / Recursive</h5>
+                <p style="margin-bottom: 1rem">Ocurre cuando <code>main</code> ha recibido <strong>otros commits</strong> mientras trabajabas. Git debe crear un nuevo "Merge Commit" (con dos padres) uniendo ambas historias.</p>
+                <div class="merge-graph">
+<pre>
+   <span class="c">C1---C2---C3 (main)</span>
+         \
+          <span class="f">F1---F2 (feat)</span>
+
+git merge feat
+
+   <span class="c">C1---C2---C3</span>----<span class="c">M  (main)</span>
+         \       /
+          <span class="f">F1---F2  (feat)</span>
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <h4>El merge --no-ff (No Fast Forward)</h4>
+        <p>A veces no queremos un Fast-forward porque <strong>queremos dejar constancia</strong> de que "esta serie de commits fueron de una feature, y se mergearon juntos". Para forzar la creación del Merge Commit, usamos:</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash">git switch main
+git merge --no-ff feature-header</code></pre>
+        </div>
+
+        <p>Al hacer tu historial verás el clásico "globo" (<i class="fa-solid fa-code-branch"></i>) que entra y vuelve a salir hacia main, en un `git log --graph`.</p>
+
+        <h3>4.4 Resolución de Conflictos</h3>
+        <p>Surgen cuando Git va a hacer Merge, pero descubre que la <strong>misma línea del mismo archivo ha sido modificada de formas distintas</strong> en ambas ramas. Git para el merge y pide a un humano que decida.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash">git switch main
+git merge feature-cambios
+
+# Output de Git:
+Auto-merging index.html
+CONFLICT (content): Merge conflict in index.html
+Automatic merge failed; fix conflicts and then commit the result.</code></pre>
+        </div>
+
+        <p>Al abrir tu archivo confictivo (ej. <code>index.html</code>) verás estas infames marcas impresas literalmente en tu código:</p>
+
+        <div class="code-block" style="border-left: 4px solid var(--danger)">
+            <pre><code class="language-html">&lt;h1&gt;Bienvenido a mi Web&lt;/h1&gt;
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD (Tu "main" actual - Donde estás montado)
+&lt;p&gt;Este es el texto original rojo.&lt;/p&gt;
+=======
+&lt;p&gt;Este es el nuevo texto verde y azul.&lt;/p&gt;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature-cambios (La rama que viene y está intentando entrar)</code></pre>
+        </div>
+
+        <h4>Pasos para resolver un conflicto:</h4>
+        <ol>
+            <li>No entres en pánico. <code>git status</code> listará los archivos "Unmerged" (en rojo).</li>
+            <li>Abre cada archivo en conflicto en tu editor preferido. VSCode las colorea maravillosamente (Choose Current, Choose Incoming, Choose Both).</li>
+            <li>Borra las de Git (<code>&lt;&lt;&lt;&lt;</code>, <code>====</code>, <code>&gt;&gt;&gt;&gt;</code>) a mano y deja el código final exactamente como quieres que quede.</li>
+            <li>Haz <code>git add index.html</code> (esto le dice a Git: «conflicto de index.html resuelto»).</li>
+            <li>Haz <code>git commit</code>. Como era un merge, Git ya tiene pre-escrito el mensaje "Merge branch feature-cambios", puedes simplemente guardar.</li>
+        </ol>
+
+        <!-- EJERCICIO 6 -->
+        <div class="exercise-box" style="border-top-color: var(--danger)">
+            <h3 style="color: var(--danger)"><i class="fa-solid fa-fire"></i> EJERCICIO 6: Provocar y Resolver un Conflicto</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Modificar la misma línea en dos ramas y resolverlo a mano sin miedo.
+            </div>
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Cambia a main: <code>git switch main</code></li>
+                <li>Crea archivo <code>config.txt</code> que diga: <code>COLOR_THEME=blue</code></li>
+                <li>Haz add y commit: <code>git add config.txt && git commit -m "feat: tema inicial azul"</code></li>
+                <li>Crea rama 'noche': <code>git switch -c tema-noche</code></li>
+                <li>Cambia el archivo a: <code>COLOR_THEME=dark</code> y haz commit.</li>
+                <li>Vuelve a main: <code>git switch main</code></li>
+                <li>AQUÍ VIENE LO DIVERTIDO. En main, cambia el mismo archivo a: <code>COLOR_THEME=light</code> y haz commit.</li>
+                <li>Intenta mergear la rama noche hacia main: <code>git merge tema-noche</code></li>
+                <li>¡Boom! Conflicto. Ejecuta <code>git status</code> para ver el daño.</li>
+                <li>Abre <code>config.txt</code>, borra las marcas, quédate con una versión lógica o de consenso (ej. <code>COLOR_THEME=dark-light-auto</code>).</li>
+                <li>Finaliza: <code>git add config.txt && git commit</code></li>
+                <li>(Opcional): Revisa el grafo con <code>git log --oneline --graph</code></li>
+            </ol>
+        </div>
+
+        <h3>4.5 "Abortar, abortar!"</h3>
+        <p>Si estás a mitad de resolver un conflicto enorme que afecta a 50 archivos y te quieres bajar de la vida, no tienes por qué borrar la carpeta. Git tiene un botón del pánico:</p>
+        
+        <div class="code-block">
+            <pre><code class="language-bash"># Detiene el merge y devuelve tu Working Directory al 
+# último commit seguro de la rama original antes del lío.
+git merge --abort</code></pre>
+        </div>
+
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <a href="operaciones.html" class="btn btn-outline" style="min-width: 150px">
+                <i class="fa-solid fa-arrow-left"></i> Anterior: Operaciones
+            </a>
+            <a href="rebase.html" class="btn btn-outline" style="min-width: 150px; justify-content: space-between">
+                Siguiente: Rebase <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-bottom" style="border-top: none; padding-top: 0">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-templating.min.js"></script>
+    <script>
+        function copyCode(button) {
+            const pre = button.parentElement.nextElementSibling;
+            const code = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '¡Copiado!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copiar';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

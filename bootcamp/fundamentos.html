@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1. Fundamentos e Internals — Git Bootcamp</title>
+    <meta name="description" content="Aprende cómo funciona Git por debajo: blobs, trees, commits y los tres estados fundamentales.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html" class="active">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero">
+        <i class="fa-solid fa-cubes page-hero-icon" style="color: var(--text)"></i>
+        <h1>Fundamentos e Internals</h1>
+        <p>Entiende cómo Git piensa y almacena la información</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">1. Fundamentos</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 1: Instalación y Configuración Base</h2>
+        <p>Antes de empezar a usar Git, es esencial configurarlo correctamente. Git necesita saber quién eres para poder asociar tus commits a tu identidad.</p>
+
+        <h3>1.1 Instalación Rápida</h3>
+        <p>Dependiendo de tu sistema operativo, la instalación varía:</p>
+        
+        <div class="two-col">
+            <div class="mini-card">
+                <h5><i class="fa-brands fa-ubuntu"></i> Linux (Debian/Ubuntu)</h5>
+                <div class="code-block" style="margin: 0.5rem 0 0 0">
+                    <pre><code class="language-bash">sudo apt update
+sudo apt install git</code></pre>
+                </div>
+            </div>
+            <div class="mini-card">
+                <h5><i class="fa-brands fa-apple"></i> macOS</h5>
+                <div class="code-block" style="margin: 0.5rem 0 0 0">
+                    <pre><code class="language-bash">brew install git</code></pre>
+                </div>
+                <p style="font-size: 0.8rem; margin-top: 0.5rem">O instalando Xcode Command Line Tools: <code>xcode-select --install</code></p>
+            </div>
+        </div>
+
+        <div class="mini-card" style="margin-top: 1.5rem">
+            <h5><i class="fa-brands fa-windows"></i> Windows</h5>
+            <p>Descarga el instalador oficial desde <a href="https://git-scm.com/download/win" target="_blank">git-scm.com</a>. Recomendamos usar <strong>Git Bash</strong> (incluido en la instalación) en lugar de CMD o PowerShell para tener una experiencia UNIX-like uniforme con este curso.</p>
+        </div>
+
+        <h3>1.2 Configuración Inicial (Esencial)</h3>
+        <p>Existen tres niveles de configuración en Git:</p>
+        <ul>
+            <li><code>--system</code>: Para todos los usuarios del sistema (raro).</li>
+            <li><code>--global</code>: Para tu usuario en todos los repositorios (<strong>lo más común</strong>). ~/ .gitconfig</li>
+            <li><code>--local</code>: Solo para el repositorio actual (sobrescribe global). .git/config</li>
+        </ul>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code class="language-bash"># Configurar nombre y email (Obligatorio)
+git config --global user.name "Tu Nombre"
+git config --global user.email "tu@email.com"
+
+# Configurar el editor por defecto (Recomendado)
+# Para VS Code:
+git config --global core.editor "code --wait"
+# Para Vim:
+git config --global core.editor "vim"
+# Para Nano:
+git config --global core.editor "nano"
+
+# Configurar el nombre de la rama principal a 'main'
+git config --global init.defaultBranch main
+
+# Ver tu configuración actual
+git config --list</code></pre>
+        </div>
+
+        <!-- EJERCICIO 1 -->
+        <div class="exercise-box">
+            <h3><i class="fa-solid fa-dumbbell"></i> EJERCICIO 1: Configurar el Entorno</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Dejar Git listo con tu identidad y editor preferido.
+            </div>
+            
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Abre tu terminal.</li>
+                <li>Verifica que Git está instalado:
+                    <code>git --version</code>
+                </li>
+                <li>Configura tu nombre real:
+                    <code>git config --global user.name "Tu Nombre Completo"</code>
+                </li>
+                <li>Configura tu email (usa el mismo de tu cuenta de GitHub):
+                    <code>git config --global user.email "tu@email.com"</code>
+                </li>
+                <li>Configura tu editor favorito (ejemplo VS Code):
+                    <code>git config --global core.editor "code --wait"</code>
+                </li>
+            </ol>
+            
+            <div class="result">
+                <h4><i class="fa-solid fa-check"></i> Resultado esperado:</h4>
+                Al ejecutar <code>git config --global -e</code> debería abrirse tu editor con un archivo que contiene la configuración que acabas de introducir. Ciérralo sin modificar.
+            </div>
+        </div>
+
+        <h2>Parte 2: Cómo Funciona Git por Debajo</h2>
+        <p>A diferencia de SVN o CVS (que guardan deltas/diferencias de archivos), Git piensa en sus datos más como un <strong>sistema de archivos snapshot stream</strong>.</p>
+        <p>Cada vez que haces un commit, Git toma una foto (snapshot) de cómo se ven TODOS tus archivos en ese momento y guarda una referencia a esa foto. Para ser eficiente, si los archivos no han cambiado, Git no almacena el archivo de nuevo, solo un enlace al archivo idéntico que ya tiene almacenado.</p>
+
+        <h3>2.1 El Modelo de Tres Áreas</h3>
+        <p>Este es el concepto más importante en Git. Un archivo en Git puede residir en tres áreas principales:</p>
+
+        <div class="pipeline" style="justify-content:space-between; margin-top: 2rem">
+            <div class="pipeline-step" style="width: 30%">
+                <span class="ps-icon"><i class="fa-solid fa-folder"></i></span>
+                <span class="ps-label" style="font-size: 0.9rem">Working Directory</span>
+                <span class="ps-sub">Tus archivos actuales</span>
+                <p style="font-size: 0.75rem; color: var(--text3); margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.5rem">Donde modificas el código</p>
+            </div>
+            
+            <div class="pipeline-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            
+            <div class="pipeline-step" style="width: 30%; border-color: var(--warning)">
+                <span class="ps-icon"><i class="fa-solid fa-box-open" style="color:var(--warning)"></i></span>
+                <span class="ps-label" style="font-size: 0.9rem; color:var(--warning)">Staging Area (Index)</span>
+                <span class="ps-sub">Archivos marcados</span>
+                <p style="font-size: 0.75rem; color: var(--text3); margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.5rem">Preparados para el próximo commit</p>
+            </div>
+            
+            <div class="pipeline-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            
+            <div class="pipeline-step" style="width: 30%; border-color: var(--secondary)">
+                <span class="ps-icon"><i class="fa-solid fa-database" style="color:var(--secondary)"></i></span>
+                <span class="ps-label" style="font-size: 0.9rem; color:var(--secondary)">Local Repository</span>
+                <span class="ps-sub">Directorio .git</span>
+                <p style="font-size: 0.75rem; color: var(--text3); margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.5rem">Base de datos de Git permanente</p>
+            </div>
+        </div>
+
+        <div class="info-box info">
+            <span class="info-box-icon"><i class="fa-solid fa-circle-info"></i></span>
+            <div class="info-box-text">
+                Por lo tanto, un archivo puede estar en uno de cuatro estados:
+                <ul>
+                    <li><strong>Untracked:</strong> Archivos nuevos que Git no está vigilando.</li>
+                    <li><strong>Unmodified:</strong> Archivos vigilados que no han cambiado desde el último commit.</li>
+                    <li><strong>Modified:</strong> Archivos vigilados que has modificado en tu Working Directory.</li>
+                    <li><strong>Staged:</strong> Archivos modificados/nuevos que has marcado para que vayan en tu próximo commit.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>2.2 Los Objetos de Git</h3>
+        <p>Bajo la carpeta <code>.git/objects</code>, Git almacena todo como una base de datos clave-valor. Todo tiene un hash SHA-1 de 40 caracteres con el que se identifica. Los 4 tipos de objetos son:</p>
+
+        <div class="cards-grid">
+            <div class="card" style="padding: 1.5rem">
+                <h4 style="margin-top:0"><i class="fa-solid fa-file-code"></i> Blob</h4>
+                <p style="font-size:0.85rem">Almacena el <strong>contenido</strong> de un archivo. No guarda el nombre del archivo ni sus permisos, solo la data cruda.</p>
+            </div>
+            <div class="card" style="padding: 1.5rem">
+                <h4 style="margin-top:0; color:var(--accent)"><i class="fa-solid fa-folder-tree"></i> Tree</h4>
+                <p style="font-size:0.85rem">Representa un <strong>directorio</strong>. Contiene listas de punteros a Blobs (archivos) u otros Trees (subdirectorios), junto con sus nombres y permisos.</p>
+            </div>
+            <div class="card" style="padding: 1.5rem">
+                <h4 style="margin-top:0; color:var(--secondary)"><i class="fa-solid fa-timeline"></i> Commit</h4>
+                <p style="font-size:0.85rem">Es la <strong>"fotografía" temporal</strong>. Apunta a un Root Tree (estado del proyecto). Contiene autor, fecha, el mensaje de commit y un puntero a su commit Padre.</p>
+            </div>
+            <div class="card" style="padding: 1.5rem">
+                <h4 style="margin-top:0; color:var(--purple)"><i class="fa-solid fa-tag"></i> Tag</h4>
+                <p style="font-size:0.85rem">Un puntero inamovible (usualmente a un Commit) que incluye un nombre humanamente legible (ej. "v1.0.0"), un mensake y quién lo creó.</p>
+            </div>
+        </div>
+
+        <!-- EJERCICIO 2 -->
+        <div class="exercise-box">
+            <h3><i class="fa-solid fa-dumbbell"></i> EJERCICIO 2: Inspeccionar los Internals</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Ver con tus propios ojos cómo Git crea y almacena objetos internamente. No harás esto en el día a día, pero te dará "superpoderes" para entender Git.
+            </div>
+            
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Crea una carpeta de prueba vacía y entra en ella:
+                    <code>mkdir test-git && cd test-git</code>
+                </li>
+                <li>Inicia un repo vacío:
+                    <code>git init</code>
+                </li>
+                <li>Observa el contenido de la carpeta <code>.git/objects</code> (debería estar vacía excepto por info y pack):
+                    <code>ls -la .git/objects</code>
+                </li>
+                <li>Escribe un string directamente a la base de datos de Git creando un <strong>Blob</strong>:
+                    <code>echo "Hola Mundo" | git hash-object -w --stdin</code>
+                    <em>(Verás que devuelve un hash como: <code>557db03de997c86a4a028e1ebd3a1ceb225be238</code>)</em>
+                </li>
+                <li>Vuelve a listar la carpeta objects. Verás una nueva carpeta con los dos primeros caracteres del hash:
+                    <code>ls -la .git/objects</code>
+                </li>
+                <li>Lee el contenido del objeto que acabas de crear usando su hash:
+                    <code>git cat-file -p {reemplaza-con-el-hash-devuelto}</code>
+                </li>
+                <li>Verifica el tipo de objeto (debería decir "blob"):
+                    <code>git cat-file -t {reemplaza-con-el-hash-devuelto}</code>
+                </li>
+            </ol>
+            
+            <div class="result">
+                <h4><i class="fa-solid fa-check"></i> Resultado esperado:</h4>
+                Entiendes que Git funciona como una simple base de datos "llave-valor" donde la llave es el hash criptográfico SHA-1 y el valor es el contenido comprimido.
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <div></div> <!-- Espacio reservado para "Anterior" en otras páginas -->
+            <a href="operaciones.html" class="btn btn-outline" style="min-width: 150px; justify-content: space-between">
+                Siguiente: Operaciones <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-bottom" style="border-top: none; padding-top: 0">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        function copyCode(button) {
+            const pre = button.parentElement.nextElementSibling;
+            const code = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '¡Copiado!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copiar';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

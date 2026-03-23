@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0. SSH y GitHub — Git Bootcamp</title>
+    <meta name="description" content="Aprende a configurar claves SSH para conectar con GitHub sin contraseñas en Windows, macOS y Linux.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html" class="active">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--secondary)">
+        <i class="fa-solid fa-key page-hero-icon" style="color: var(--secondary)"></i>
+        <h1>Conexión Segura (SSH)</h1>
+        <p>Configura GitHub para no volver a escribir una contraseña nunca más</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">0. SSH GitHub</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 0: Autenticación por SSH</h2>
+        <p>Hace un tiempo que GitHub (y GitLab) eliminaron la posibilidad de subir código usando usuario y contraseña tradicionales por HTTPS por motivos de seguridad. Hoy en día necesitas un <strong>Token de Acceso Personal (PAT)</strong> o usar una <strong>Clave SSH</strong>.</p>
+        
+        <p>La clave SSH es el método recomendado por profesionales: lo configuras una sola vez en tu ordenador y te olvidas. Es como darle tu huella dactilar a GitHub.</p>
+
+        <h3>¿Qué es una clave SSH?</h3>
+        <p>Es un par de archivos de texto que se guardan ocultos en tu ordenador (normalmente en la carpeta <code>~/.ssh</code>). Consiste en:</p>
+        <ul>
+            <li><strong>Clave Privada:</strong> (ej. <code>id_ed25519</code>). <strong>NUNCA</strong> la compartas con nadie. Es la que se queda en tu PC probando que eres tú.</li>
+            <li><strong>Clave Pública:</strong> (ej. <code>id_ed25519.pub</code>). Es como un candado abierto. Esta es la que subiremos a la web de GitHub.</li>
+        </ul>
+
+        <h3>Paso 1: Comprobar si ya tienes claves SSH</h3>
+        <p>Abre tu terminal (en Windows abre <strong>Git Bash</strong>, no uses CMD) y ejecuta:</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash">ls -la ~/.ssh</code></pre>
+        </div>
+        
+        <p>Si ves archivos que se llaman <code>id_rsa.pub</code> o <code>id_ed25519.pub</code>, ya tienes una. Puedes saltar al Paso 3. Si te dice que el directorio no existe o está vacío, continúa al Paso 2.</p>
+
+        <h3>Paso 2: Generar una nueva clave SSH</h3>
+        <p>Abre tu terminal (Git Bash en Windows, o la terminal por defecto en Mac/Linux) y escribe (cambiando el email por tu correo de GitHub):</p>
+
+        <div class="code-block" style="border-left: 4px solid var(--secondary)">
+            <pre><code class="language-bash">ssh-keygen -t ed25519 -C "tu_email@ejemplo.com"</code></pre>
+        </div>
+
+        <p>Verás lo siguiente:</p>
+        <div class="code-block">
+            <pre><code class="language-bash"># 1. Te pedirá dónde guardarlo (Pulsa ENTER para la ruta por defecto)
+> Enter a file in which to save the key (/home/tuusuario/.ssh/id_ed25519): 
+
+# 2. Te pedirá una "passphrase" o contraseña (Opcional, dale a ENTER dos veces si no quieres poner contraseña cada vez que hagas push)
+> Enter passphrase (empty for no passphrase): [Pulsa ENTER]
+> Enter same passphrase again: [Pulsa ENTER]</code></pre>
+        </div>
+
+        <h3>Paso 3: Añadir tu clave SSH al agente ssh-agent</h3>
+        <p>El agente se encarga de administrar tus llaves en segundo plano.</p>
+
+        <div class="two-col">
+            <div class="mini-card" style="border-top: 3px solid #8957e5">
+                <h5><i class="fa-brands fa-apple"></i> macOS y <i class="fa-brands fa-linux"></i> Linux</h5>
+                <div class="code-block" style="margin: 0.5rem 0 0 0">
+                    <pre><code class="language-bash"># Iniciar el agente:
+eval "$(ssh-agent -s)"
+
+# Añadir la llave:
+ssh-add ~/.ssh/id_ed25519</code></pre>
+                </div>
+            </div>
+            
+            <div class="mini-card" style="border-top: 3px solid #00a4ef">
+                <h5><i class="fa-brands fa-windows"></i> Windows (Git Bash)</h5>
+                <div class="code-block" style="margin: 0.5rem 0 0 0">
+                    <pre><code class="language-bash"># Iniciar el agente:
+eval "$(ssh-agent -s)"
+
+# Añadir la llave:
+ssh-add ~/.ssh/id_ed25519</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box tip">
+            <span class="info-box-icon"><i class="fa-brands fa-apple"></i></span>
+            <div class="info-box-text">
+                <strong>Especial para Mac:</strong> Si usas macOS Sierra o superior, necesitas modificar tu archivo <code>~/.ssh/config</code> para que agregue las llaves automáticamente al Keychain y no te pida la contraseña en cada reinicio. Consulta la <a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent" target="_blank" style="color:var(--accent)">doc oficial de GitHub</a> para esto.
+            </div>
+        </div>
+
+        <h3>Paso 4: Añadir la Clave Pública a tu cuenta de GitHub</h3>
+        <p>Primero, necesitamos copiar el contenido de tu archivo público (el que termina en <code>.pub</code>).</p>
+
+        <div class="two-col mt-4">
+            <div class="mini-card">
+                <h5><i class="fa-brands fa-windows"></i> Windows</h5>
+                <code style="display:block; margin: 1rem 0">clip &lt; ~/.ssh/id_ed25519.pub</code>
+            </div>
+            <div class="mini-card">
+                <h5><i class="fa-brands fa-apple"></i> macOS</h5>
+                <code style="display:block; margin: 1rem 0">pbcopy &lt; ~/.ssh/id_ed25519.pub</code>
+            </div>
+            <div class="mini-card">
+                <h5><i class="fa-brands fa-linux"></i> Linux (Debian/Ubuntu)</h5>
+                <code style="display:block; margin: 1rem 0">xclip -selection clipboard &lt; ~/.ssh/id_ed25519.pub</code>
+                <span class="ps-sub">(Requiere tener instalado xclip: <code>sudo apt install xclip</code>)</span>
+            </div>
+            <div class="mini-card">
+                <h5>La vieja confiable (Cualquier OS)</h5>
+                <code style="display:block; margin: 1rem 0">cat ~/.ssh/id_ed25519.pub</code>
+                <span class="ps-sub">Selecciona todo el texto que te escupe la terminal con el ratón, clic derecho y Copiar. Asegurándote de que no metes saltos de línea extra.</span>
+            </div>
+        </div>
+
+        <p><strong>Con el texto copiado en tu portapapeles:</strong></p>
+        <ol>
+            <li>Inicia sesión en GitHub.</li>
+            <li>En la esquina superior derecha de cualquier página, haz clic en tu foto de perfil y, a continuación, pulsa en <strong>Settings</strong> (Configuración).</li>
+            <li>En la barra lateral izquierda, haz clic en <strong>SSH and GPG keys</strong>.</li>
+            <li>Haz clic en el botón verde <strong>New SSH key</strong>.</li>
+            <li>En el campo "Title" (Título), añade una etiqueta descriptiva. Por ejemplo "Portátil Personal Mac" o "PC Windows Casa".</li>
+            <li>Deja el "Key type" en <strong>Authentication Key</strong>.</li>
+            <li>En el campo "Key", pega tu clave pública (<code>Ctrl + V</code> o <code>Cmd + V</code>).</li>
+            <li>Pulsa <strong>Add SSH key</strong>. Si has puesto contraseña en GitHub te la pedirá para confirmar.</li>
+        </ol>
+
+        <!-- EJERCICIO 0 -->
+        <div class="exercise-box" style="border-top-color: var(--secondary)">
+            <h3 style="color: var(--secondary)"><i class="fa-solid fa-server"></i> EJERCICIO 0: Probar la Conexión</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Asegurarse de que el ordenador puede comunicarse con GitHub usando tu nueva identidad de SSH.
+            </div>
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Abre tu terminal o Git Bash.</li>
+                <li>Escribe el siguiente comando y pulsa ENTER:
+                    <code>ssh -T git@github.com</code>
+                </li>
+                <li>Puede que veas un aviso de autenticidad similar a esto:
+                    <div style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.2); padding: 0.5rem; margin: 0.5rem 0; color: var(--text3)">The authenticity of host 'github.com (140.82.112.3)' can't be established.<br>
+                    ED25519 key fingerprint is SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UjtI0g.<br>
+                    This key is not known by any other names<br>
+                    Are you sure you want to continue connecting (yes/no/[fingerprint])?</div>
+                </li>
+                <li>Escribe <strong>yes</strong> literalmente y dale a ENTER (esto solo pasa la primera vez).</li>
+            </ol>
+            <div class="result">
+                <h4><i class="fa-solid fa-check"></i> Resultado esperado:</h4>
+                Deberías ver un mensaje como: <br><br>
+                <code>Hi NombreDeUsuario! You've successfully authenticated, but GitHub does not provide shell access.</code>
+                <br><br>¡Significa que la configuración es exitosa! A partir de ahora, <strong>SIEMPRE</strong> elige la opción "SSH" (y no "HTTPS") para copiar las URLs al hacer `git clone`.
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <div></div> <!-- Espacio reservado para "Anterior" en otras páginas -->
+            <a href="fundamentos.html" class="btn btn-outline" style="min-width: 150px; justify-content: space-between">
+                Siguiente: Fundamentos <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo"><i class="fa-brands fa-git-alt"></i> Git Bootcamp</div>
+                <p>La documentación definitiva para dominar el control de versiones, creada para desarrolladores que quieren entender qué pasa bajo el capó.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Módulos</h5>
+                <ul>
+                    <li><a href="ssh.html">0. SSH GitHub</a></li>
+                    <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                    <li><a href="operaciones.html">2. Operaciones Básicas</a></li>
+                    <li><a href="ramas.html">3. Ramas y Merging</a></li>
+                    <li><a href="rebase.html">4. Rebase</a></li>
+                    <li><a href="remotos.html">5. Remotos y GitHub</a></li>
+                    <li><a href="avanzado.html">6. Avanzado</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h5>Recursos Adicionales</h5>
+                <ul>
+                    <li><a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh" target="_blank"><i class="fa-solid fa-book"></i> GitHub SSH Docs</a></li>
+                    <li><a href="https://git-scm.com/docs" target="_blank"><i class="fa-solid fa-book"></i> Documentación Oficial Git</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        function copyCode(button) {
+            const pre = button.parentElement.nextElementSibling;
+            const code = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '¡Copiado!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copiar';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

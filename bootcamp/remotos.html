@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5. Remotos y GitHub — Git Bootcamp</title>
+    <meta name="description" content="Aprende a colaborar con otros usando repositorios remotos, origin, clone, fetch, pull y push.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html" class="active">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--accent)">
+        <i class="fa-solid fa-cloud-arrow-up page-hero-icon" style="color: var(--accent)"></i>
+        <h1>Remotos y GitHub</h1>
+        <p>Trabajando en equipo y sincronizando tu código con la nube</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">5. Remotos</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 6: Repositorios Remotos (GitHub, GitLab)</h2>
+        <p>Hasta ahora, todo nuestro trabajo ha sido local. Pero el poder real de Git reside en su naturaleza <strong>distribuida</strong>. Puedes tener múltiples copias (remotes) de tu proyecto sincronizadas en la nube o en servidores locales.</p>
+
+        <h3>6.1 ¿Qué es un Remote y qué es Origin?</h3>
+        <p>Un "remote" (remoto) en Git es simplemente una <strong>URL con un alias (un nombre corto)</strong>. Te evita tener que escribir la URL completa de GitHub cada vez que quieres enviar código.</p>
+
+        <p>Por convención universal, cuando clonas un repositorio por primera vez, Git le asigna automáticamente el nombre <strong><code>origin</code></strong> a la URL de donde lo descargaste.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># Clonar un repositorio existente (crea origin automático)
+git clone https://github.com/usuario/repo.git
+
+# Listar los remotos configurados
+git remote -v
+# Output esperado:
+# origin  https://github.com/usuario/repo.git (fetch)
+# origin  https://github.com/usuario/repo.git (push)
+
+# Si empezaste en local (git init), añadir un nuevo remoto:
+git remote add origin https://github.com/usuario/repo.git</code></pre>
+        </div>
+
+        <div class="info-box info">
+            <span class="info-box-icon"><i class="fa-brands fa-github"></i></span>
+            <div class="info-box-text">
+                Ojo: GitHub, GitLab o Bitbucket <strong>NO son Git</strong>. Son plataformas de alojamiento que tienen instalado Git en sus servidores y te proveen una interfaz gráfica web para visualizarlo y gestionar accesos (Pull Requests y Issues no existen en Git clásico, son inventos de GitHub).
+            </div>
+        </div>
+
+        <h3>6.2 Push, Fetch y Pull</h3>
+        
+        <h4>git push</h4>
+        <p>Envía tus commits locales al servidor remoto.</p>
+        <div class="code-block" style="border-left: 4px solid var(--accent)">
+            <pre><code class="language-bash"># Subir tu rama main al remote origin
+git push origin main
+
+# Si es la PRIMERA VEZ que subes una rama nueva recién creada,
+# necesitas el flag -u (--set-upstream) para enlazar ambos mundos
+git push -u origin feature-perfiles
+# ¡A partir de ahora, bastará solo con teclear 'git push'!</code></pre>
+        </div>
+
+        <div class="two-col mt-4">
+            <div class="mini-card" style="border-top: 3px solid var(--warning)">
+                <h5 style="color: var(--warning)">git fetch (Descarga Segura)</h5>
+                <p>Descarga la información nueva del remoto a tu PC (ramas de otras personas, commits en main), pero <strong>NO toca tu Working Directory</strong>. Se queda guardado en la recámara.</p>
+                <code style="margin-top:0.5rem; display:block">git fetch origin</code>
+            </div>
+            
+            <div class="mini-card" style="border-top: 3px solid var(--danger)">
+                <h5 style="color: var(--danger)">git pull (Descarga Destructiva)</h5>
+                <p>Es un atajo de dos comandos por debajo: <strong><code>git fetch</code> + <code>git merge</code></strong>. Se descarga lo nuevo e intenta fusionarlo activamente sobre los archivos que tienes abiertos.</p>
+                <code style="margin-top:0.5rem; display:block">git pull origin main</code>
+            </div>
+        </div>
+
+        <h3>6.3 Resolviendo Conflictos en el Remoto (Pull Requests)</h3>
+        <p>Imagina que intentas hacer <code>git push</code> y Git te escupe un error gigante y rojo diciendo "REJECTED (non-fast-forward)". <strong>¿Qué ha pasado?</strong></p>
+
+        <p>Ha pasado que un compañero de equipo hizo un push a <code>main</code> media hora antes que tú. El remeto "sabe cosas" que tu PC no sabe. Git no te dejará sobreescribir la historia.</p>
+        
+        <p><strong>La Solución (El Pull Resolutivo):</strong></p>
+        <ol>
+            <li>Git te rechazó el push.</li>
+            <li>Haces <code>git pull origin main</code>.</li>
+            <li>Si tocasteis las mismas líneas, saltará un <strong>CONFLITO DE MERGE</strong> local en tu pantalla.</li>
+            <li>Abres el archivo, eliges <i>Accept Current</i> o <i>Accept Incoming</i> y guardas.</li>
+            <li>Haces <code>git commit</code> y cierras el conflicto.</li>
+            <li>Vuelves a hacer <code>git push</code>, con la historia fusionada, y GitHub lo aceptará.</li>
+        </ol>
+
+        <!-- EJERCICIO 8 -->
+        <div class="exercise-box">
+            <h3><i class="fa-brands fa-github"></i> EJERCICIO 8: Simulacro de Colaboración</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Comprender el proceso de clonar, crear ramas asociadas (tracking) y empujar.
+            </div>
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Crea un repositorio vacío en GitHub (sin README). </li>
+                <li>Copia su URL HTTPS o SSH (ej. <code>https://github.com/usuario/test-repo.git</code>)</li>
+                <li>Vuelve a un proyecto tuyo local (<code>mi-portafolio</code>) que hicimos antes.</li>
+                <li>Vincula el remoto: <code>git remote add origin la_url_que_copiaste</code></li>
+                <li>Empuja tu historia base a la nube: <code>git push -u origin main</code></li>
+                <li><strong>Crea un problema adrede:</strong> Entra a GitHub desde la web, edita un archivo directamente allí y dale a commit. Esto imita a "un colega ha cambiado cosas y tú no te has enterado".</li>
+                <li>Vuelve a tu PC local, intenta editar el mismo archivo en el mismo sitio.</li>
+                <li>Haz <code>git commit -am "Cambio en local rompiendo cosas"</code>.</li>
+                <li>Intenta <code>git push</code>. ¡Te dará un ERROR (Rejected)!</li>
+                <li>Haz lo que dijimos: <code>git pull origin main</code>, resuelve el conflicto pacíficamente en tu editor y luego vuelve a intentar el <code>git push</code>. ¡Victoria!</li>
+            </ol>
+        </div>
+
+        <h3>6.4 Limpieza: Las Ramas Antiguas</h3>
+        <p>Un error muy común de junior es no limpiar después de que te aprueban la Pull Request (PR). La rama sigue existiendo localmente y remotamente.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># 1. Cuando te aprueben en GitHub, borra su rama remota 
+# O le das al botón morado "Delete branch" en la web.
+
+# 2. Te sincronizas y limpias la basura de ramas remotas muertas de tu PC:
+git fetch --prune
+
+# 3. Y por fin borras la local que ya no vale para nada:
+git switch main
+git branch -d feature-login-terminado</code></pre>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <a href="rebase.html" class="btn btn-outline" style="min-width: 150px">
+                <i class="fa-solid fa-arrow-left"></i> Anterior: Rebase
+            </a>
+            <a href="avanzado.html" class="btn btn-outline" style="min-width: 150px; justify-content: space-between">
+                Siguiente: Trucos Avanzados <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-bottom" style="border-top: none; padding-top: 0">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+</body>
+</html>

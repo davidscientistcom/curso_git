@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2. Operaciones Básicas — Git Bootcamp</title>
+    <meta name="description" content="Aprende el flujo diario de Git: git add, git commit, git log, y convenciones para mensajes de commit.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html" class="active">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero">
+        <i class="fa-solid fa-terminal page-hero-icon" style="color: var(--secondary)"></i>
+        <h1>Operaciones Básicas</h1>
+        <p>El ciclo de vida del código: crear, modificar, empaquetar y versionar</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">2. Operaciones</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 3: El Día a Día (Operaciones Básicas)</h2>
+        <p>Ahora que entiendes el Staging Area, vamos a ver el flujo real diario de un desarrollador.</p>
+
+        <h3>3.1 Crear un Repositorio (git init)</h3>
+        <p>Para empezar a usar Git en tu proyecto, solo tienes que situarte en la carpeta y ejecutar:</p>
+        
+        <div class="code-block">
+            <pre><code class="language-bash">cd mi-proyecto
+git init</code></pre>
+        </div>
+        <p>Esto crea una subcarpeta oculta <code>.git/</code> donde se almacenará todo el historial. Tu carpeta ahora es un "Working Directory" válido.</p>
+
+        <h3>3.2 Comprobar el Estado (git status)</h3>
+        <p>Este es el comando que más usarás. Te dice en qué estado se encuentran tus archivos (Untracked, Modified, Staged).</p>
+
+        <div class="code-block" style="border-left: 4px solid var(--accent)">
+            <pre><code class="language-bash">git status
+
+# Forma corta y resumida (muy recomendada):
+git status -s  # Muestra ?? (untracked), M (modified), A (added), etc.</code></pre>
+        </div>
+
+        <h3>3.3 El Staging Area (git add)</h3>
+        <p><code>git add</code> escoge archivos de tu Working Directory y los copia al Index (Staging Area). Piensa en esto como "preparar la caja" antes de cerrarla y enviarla.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># Añadir un archivo específico
+git add index.html
+
+# Añadir varios archivos o una carpeta entera
+git add css/ src/ index.html
+
+# Añadir TODO el directorio actual (lo más usado)
+git add .
+
+# Añadir de forma interactiva (chunk por chunk del archivo)
+git add -p</code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <span class="info-box-icon"><i class="fa-solid fa-fire"></i></span>
+            <div class="info-box-text">
+                <strong>Pro Tip:</strong> <code>git add -p</code> (patch module) es increíblemente útil cuando has hecho demasiados cambios en un archivo pero quieres dividir esos cambios en diferentes commits lógicos.
+            </div>
+        </div>
+
+        <h3>3.4 Empaquetar el Historial (git commit)</h3>
+        <p>Una vez la caja (Staging Area) tiene lo que quieres, la "cierras" y le pones una etiqueta descriptiva: eso es el commit.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># Abrirá tu editor configurado para escribir el mensaje
+git commit
+
+# Mensaje corto directo en consola
+git commit -m "add login page validation"
+
+# Atajo: hace 'git add' de todos los archivos YA traqueados y commitea
+# Nota: No añadirá archivos nuevos (untracked)
+git commit -am "fix header layout shift on mobile"</code></pre>
+        </div>
+
+        <h4>Buenas Prácticas en los Mensajes de Commit</h4>
+        <p>Un historial lleno de <code>"updates"</code>, <code>"wip"</code>, o <code>"fix cosas"</code> es inútil cuando buscas un bug 6 meses después. Usa la convención de <strong>Conventional Commits</strong>.</p>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Cuándo usarlo</th>
+                        <th>Ejemplo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-green">feat</span></td>
+                        <td>Una nueva característica funcional</td>
+                        <td><code>feat: añadir validación de contraseña en registro</code></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-red">fix</span></td>
+                        <td>Solución de un bug o error</td>
+                        <td><code>fix: botón de submit deshabilitado tras error 500</code></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-purple">refactor</span></td>
+                        <td>Cambio de código que no añade feat ni fix</td>
+                        <td><code>refactor: extraer lógica de auth a middleware</code></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-orange">docs</span></td>
+                        <td>Cambios en documentación o comentarios</td>
+                        <td><code>docs: actualizar README con pasos de instalación</code></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-cyan">style</span></td>
+                        <td>Formateo, punto y coma, tabs (no cambia lógica)</td>
+                        <td><code>style: aplicar prettier formatting en componentes</code></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-amber">test</span></td>
+                        <td>Añadir o corregir pruebas unitarias</td>
+                        <td><code>test: cubrir casos límite del carrito de compras</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- EJERCICIO 3 -->
+        <div class="exercise-box">
+            <h3><i class="fa-solid fa-dumbbell"></i> EJERCICIO 3: El Flujo Diario</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Crear un proyecto desde cero, añadir archivos, verificar el estado y hacer commits limpios.
+            </div>
+            
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>Crea un proyecto: <code>mkdir mi-portafolio && cd mi-portafolio</code></li>
+                <li>Inicializa Git: <code>git init</code></li>
+                <li>Crea un archivo de prueba (Linux/Mac): <code>echo "&lt;h1&gt;Hola Mundo&lt;/h1&gt;" > index.html</code></li>
+                <li>Verifica estado: <code>git status</code> (Verás que es Untracked).</li>
+                <li>Añade al Stage: <code>git add index.html</code></li>
+                <li>Verifica de nuevo: <code>git status</code> (Verás que está listo para commit).</li>
+                <li>Haz el commit inicial: <code>git commit -m "feat: inicializar portafolio con index vacio"</code></li>
+                <li>Modifica el archivo: Abre index.html y añade contenido.</li>
+                <li>Crea un segundo archivo: <code>style.css</code>.</li>
+                <li>Verifica estado: <code>git status</code> (Verás uno Modified y otro Untracked).</li>
+                <li>Añade todo y haz commit: <code>git add . && git commit -m "feat: agregar estilos basicos y contenido a index"</code></li>
+            </ol>
+        </div>
+
+        <h3>3.5 Historial y Cambios</h3>
+        
+        <h4>Ver el historial (git log)</h4>
+        <div class="code-block">
+            <pre><code class="language-bash"># Historial estándar (largo y detallado)
+git log
+
+# ¡SUPER ÚTIL! Historial compacto en una línea
+git log --oneline
+
+# El "log ninja": Visualización gráfica del historial de ramas (graph)
+git log --oneline --graph --all</code></pre>
+        </div>
+
+        <h4>Ver modificaciones (git diff)</h4>
+        <div class="code-block">
+            <pre><code class="language-bash"># Diferencias entre archivos locales vs Staging Area
+git diff
+
+# Diferencias entre Staging Area vs último commit (¿Qué vas a commitear?)
+git diff --staged
+
+# Qué cambios introdujo exactamente el último commit u otro específico
+git show HEAD
+git show 5f8a9e2</code></pre>
+        </div>
+
+        <!-- EJERCICIO 4 -->
+        <div class="exercise-box">
+            <h3><i class="fa-solid fa-dumbbell"></i> EJERCICIO 4: Explorar el Historial</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Aprender a navegar por los cambios que has hecho.
+            </div>
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>En la carpeta <code>mi-portafolio</code>, ejecuta: <code>git log --oneline</code></li>
+                <li>Añade un párrafo a <code>index.html</code> sin hacer <code>git add</code> todavía.</li>
+                <li>Ejecuta <code>git diff</code> para ver exactamente qué líneas cambiaste.</li>
+                <li>Haz <code>git add index.html</code>.</li>
+                <li>Vuelve a ejecutar <code>git diff</code>. ¡El resultado estará vacío! (porque el archivo ya pasó al stage).</li>
+                <li>Ejecuta <code>git diff --staged</code> para ver esos cambios listos para el commit.</li>
+                <li>Haz el commit: <code>git commit -m "docs: extender parrafo introductorio"</code>.</li>
+            </ol>
+        </div>
+
+        <h3>3.6 Archivos Ignorados (.gitignore)</h3>
+        <p>Hay archivos que <strong>NUNCA</strong> deberían subirse a Git (variables de entorno, claves secretas, dependencias pesadas como <code>node_modules</code>, binarios compilados, archivos de tu IDE como <code>.vscode</code>).</p>
+        
+        <p>Para eso se crea un archivo llamado <code>.gitignore</code> en la raíz.</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">.gitignore</span>
+            </div>
+            <pre><code class="language-markdown"># Ignorar carpetas Node
+node_modules/
+
+# Ignorar archivos ocultos del sistema operativo
+.DS_Store
+
+# Ignorar logs
+*.log
+
+# Ignorar variables de entorno
+.env
+
+# Excepción: ignorar todos los .txt, EXCEPTO roadmap.txt
+*.txt
+!roadmap.txt</code></pre>
+        </div>
+
+        <div class="info-box warning">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                Si alguna vez haces <code>git add</code> sobre un archivo y le haces <code>commit</code>, añadirlo al <code>.gitignore</code> <strong>después</strong> no lo borrará de Git. Seguirá siendo vigilado. Veremos cómo solucionar esto en la sección de Deshacer Cambios.
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <a href="fundamentos.html" class="btn btn-outline" style="min-width: 150px">
+                <i class="fa-solid fa-arrow-left"></i> Anterior: Fundamentos
+            </a>
+            <a href="ramas.html" class="btn btn-outline" style="min-width: 150px; justify-content: space-between">
+                Siguiente: Ramas & Merge <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-bottom" style="border-top: none; padding-top: 0">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+    <script>
+        function copyCode(button) {
+            const pre = button.parentElement.nextElementSibling;
+            const code = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '¡Copiado!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copiar';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

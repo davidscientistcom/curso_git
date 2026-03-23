@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6. Comandos Avanzados — Git Bootcamp</title>
+    <meta name="description" content="Técnicas avanzadas de Git: git stash, reflog de supervivencia, bisect y cherry-pick para expertos.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html" class="active">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--purple)">
+        <i class="fa-solid fa-wand-magic-sparkles page-hero-icon" style="color: var(--purple)"></i>
+        <h1>Herramientas Avanzadas</h1>
+        <p>Bolsillo de emergencia, el buscador de bugs y la máquina del tiempo de los Dioses</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">6. Avanzado</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Parte 7: Funcionalidades Ninja ("Sácame de este apuro")</h2>
+        <p>A esta altura ya sabes crear y mezclar el 95% de lo que te pedirán en una empresa normal. Pero a veces ocurren accidentes o tienes que encontrar al culpable de un bug fantasma.</p>
+
+        <h3>7.1 Guardar el trabajo a medias: Git Stash</h3>
+        <p>Estás a la mitad de programar un componente complejo. Te avisa el jefe por un Teams: "<i>Tenemos que subir un parche urgente a la web, apaga lo que tengas y arréglalo en <code>main</code> YA!</i>".</p>
+        
+        <p>No quieres hacer un commit llamado "wip: asdf" porque rompería e impediría que corrieran los tests del Pipeline CI/CD si se te ocurre pushear algo. Y además está incompleto. Aquí entra <strong><code>git stash</code></strong> (El cajón o bolsillo en español).</p>
+
+        <div class="code-block" style="border-left: 4px solid var(--purple)">
+            <pre><code class="language-bash"># 1. Metes tus ficheros sucios actuales en un bolsillo escondido.
+# Esto dejará tu Working Directory totalmente LÍMPIO y vacío como el último commit.
+git stash
+
+# Opcionalmente, puedes guardarlos poniéndoles etiqueta para no olvidarte:
+git stash push -m "implementando carrito compra, falta CSS"
+
+# --- AHORA SALES, ARREGLAS EL MAIN, HACES PUSH COMO TE PIDIERON ---
+
+# 2. Vuelves a tu rama de la feature vieja e invocas el bolsillo de vuelta.
+# pop saca los datos en tus archivos MIENTRAS borra la entrada del bolsillo.
+git stash pop
+
+# Ver todo lo que tienes guardado en múltiples bolsillos
+git stash list</code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <span class="info-box-icon"><i class="fa-regular fa-lightbulb"></i></span>
+            <div class="info-box-text">
+                Si haces <code>git stash apply</code> los cambios volverán a tu fichero, pero el estado guardado no se borrará del listado del stash, útil por si crees que algo se puede romper al re-aplicar y quieres mantener el backup.
+            </div>
+        </div>
+
+        <h3>7.2 Robar una característica: Cherry Pick</h3>
+        <p>A veces no quieres fusionar toda la rama entera de un programador (porque tiene 20 features y bugs). Solo quieres <strong>ese commit exacto de esa línea que parseaba el JSON</strong> porque la necesitas para tu desarrollo paralelo.</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># Encuentras el hash del commit al ver en GitHub o en el log ajeno (ej. e2f9a1)
+# Y te lo llevas mágicamente como un "copy-paste de cambios" por encima a tu rama:
+
+git cherry-pick e2f9a1c</code></pre>
+        </div>
+
+        <h3>7.3 Encontrar la Aguja en el Pajar: Git Bisect</h3>
+        <p>El botón de login se ha roto. Estás seguro que en Producción (versión v1.0.0 de hace 3 semanas) funcionaba perfectamente. Hoy (HEAD) estalla de error 500. Ha habido <strong>140 commits</strong> desde esa versión. ¿Quién coj**** lo rompió y qué línea puso?</p>
+        
+        <p>En vez de revisar uno a uno como un loco, usarás la <strong>Búsqueda Binaria automatizada</strong>:</p>
+
+        <div class="code-block">
+            <pre><code class="language-bash"># Iniciamos el motor bisect (El buscador)
+git bisect start
+
+# A) Le marcas el límite "MALO" (El de hoy que sabes que está roto)
+git bisect bad
+
+# B) Le marcas el límite "BUENO" (Un hash o Tag de hace un mes que sabes iba joya)
+git bisect good v1.0.0
+
+# OUTPUT MAGICO DE GIT:
+# "Bisecting: 70 revisions left to test after this (roughly 6 steps)"
+
+# Git te ha transportado EN MEDIO DEL HISTORIAL y ha compilado el código.
+# Tú pulsas en el botón de login. "Oh funciona!".
+git bisect good
+
+# Git salta de nuevo, partiendo la historia. Tú pulsas de nuevo. "Ouch, Fallo"
+git bisect bad
+
+# Tras unos pocos clics, el Asesino revelado:
+# &lt;e13a9bf0&gt; is the first bad commit
+# Author: Roberto D.&lt;roberto@mail.com&gt;
+# feat: optimizar authService inyectando caché roto
+
+# Acabas y devuelves a git a como estaba hoy pacíficamente
+git bisect reset</code></pre>
+        </div>
+
+        <!-- EJERCICIO 9 -->
+        <div class="exercise-box" style="border-top-color: var(--purple)">
+            <h3 style="color: var(--purple)"><i class="fa-solid fa-meteor"></i> EJERCICIO 9: El Salvavidas Definitivo (Git Reflog)</h3>
+            <div class="objective">
+                <strong>Objetivo:</strong> Rescatar un commit borrado o una rama que has ejecutado con -D sin querer.
+            </div>
+            <p>En Git <strong>NADA SE BORRA, CASI NADA</strong> (salvo que corra el <i>garbage collection</i> pasados más de 30 días, o archivos no trackeados nunca que borras a tu nivel de disco). Git guarda un registro diario, como una "Caja Negra de Avión", de todo movimiento que haces por minúsculo que sea.</p>
+
+            <p><strong>Pasos:</strong></p>
+            <ol>
+                <li>En un repositorio cualquiera, haz dos commits limpios. Reemplaza palabras simples y guarda (ej: "A", luego "B").</li>
+                <li>Hagamos una catástrofe. Resetea duramente volviendo al penúltimo commit como si B no existiera.<br>
+                    <code>git reset --hard HEAD~1</code>
+                </li>
+                <li>Haz un <code>git log</code>. Te sudarán las manos. B ha desaparecido para siempre. La rama no existe, el cambio se fue no está ni trackeado ni subido al remoto.</li>
+                <li>Usa la máquina del tiempo:<br>
+                    <code>git reflog</code>
+                </li>
+                <li>Deberías ver una especie de bitácora extraña de acciones como:
+                    <br><code>9a3b2f HEAD@{0}: reset: moving to HEAD~1</code>
+                    <br><code>ec4b7a HEAD@{1}: commit: texto B</code> &lt;-- ¡AQUÍ ESTÁ! Este es el hash criptográfico huérfano y perdido.
+                </li>
+                <li>Si quieres viajar atrás y crear urgentemente una rama cogiendo ese hash zombi del éter, solo escribe:<br>
+                    <code>git branch salvavidas ec4b7a</code>
+                </li>
+                <li>El código de B ha resucitado como si la catástrofe nunca hubiera ocurrido en la nueva rama salvavidas.</li>
+            </ol>
+        </div>
+
+        <div class="info-box danger">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                Ojo: Al invocar un <code>--hard</code>, si de veras perdiste horas de trabajo en el Working Directory que <strong>JAMÁS COMPRIME EN UN COMMIT NI EN STAGE</strong>, de ninguna manera; eso de verdad no lo rescata ni la CSI Forense. Nunca borres cosas a lo bestia en tu disco. De lo contrario, con commit, nada se pierde en Git.
+            </div>
+        </div>
+
+
+        <div style="display: flex; justify-content: space-between; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border)">
+            <a href="remotos.html" class="btn btn-outline" style="min-width: 150px">
+                <i class="fa-solid fa-arrow-left"></i> Anterior: Remotos y GitHub
+            </a>
+            <div style="width: 150px;"></div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-bottom" style="border-top: none; padding-top: 0">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+</body>
+</html>

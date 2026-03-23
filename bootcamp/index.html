@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git & GitHub Bootcamp — Master en Control de Versiones</title>
+    <meta name="description"
+        content="Aprende Git desde cero hasta un nivel experto: fundamentos, ramas, rebase, resolución de conflictos y colaboración en GitHub.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Prism.js for code highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    
+    <style>
+        /* SVG animado para el Hero */
+        .git-hero-svg { width: 100%; height: 100%; }
+        .node { fill: var(--bg); stroke-width: 3; }
+        .node.main { stroke: var(--secondary); }
+        .node.feat { stroke: var(--accent); }
+        .node.head { stroke: var(--primary); fill: var(--primary); }
+        .edge { stroke: var(--text3); stroke-width: 2; fill: none; }
+        .edge.main { stroke: var(--secondary); }
+        .edge.feat { stroke: var(--accent); }
+        
+        .anim-pulse { animation: pulse 2s infinite; }
+        .anim-draw { stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw 2s forwards infinite alternate; }
+        
+        @keyframes draw { to { stroke-dashoffset: 0; } }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <span class="brand-text">Git Bootcamp</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+        <div class="hero-bg-grid"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                Control de Versiones · Código · Colaboración
+            </div>
+            <h1 class="hero-title">
+                Domina<br><span class="gradient-text">Git & GitHub</span>
+            </h1>
+            <p class="hero-subtitle">Desde Init hasta Rebase Interactivo sin miedo</p>
+            <p class="hero-desc">
+                Un curso práctico y directo diseñado para que entiendas <strong style="color:var(--primary-light)">cómo funciona Git por debajo</strong> 
+                y cómo usarlo como un profesional en tu día a día. Adiós a copiar comandos de Stack Overflow
+                sin saber qué hacen.
+            </p>
+            <div class="hero-actions">
+                <a href="fundamentos.html" class="btn btn-primary"><i class="fa-solid fa-rocket"></i> Empezar desde cero</a>
+                <a href="ramas.html" class="btn btn-github"><i class="fa-solid fa-code-branch"></i> Ramas & Merge</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat"><span class="stat-num">7</span> Módulos</div>
+                <div class="stat-sep"></div>
+                <div class="stat"><span class="stat-num">24</span> Ejercicios</div>
+                <div class="stat-sep"></div>
+                <div class="stat"><span class="stat-num">100%</span> Práctico</div>
+            </div>
+        </div>
+
+        <!-- Hero Visual: Animated Git Graph -->
+        <div class="hero-visual">
+            <svg class="git-hero-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <!-- Edges -->
+                <path class="edge main anim-draw" d="M40 160 L40 40" />
+                <path class="edge feat anim-draw" style="animation-delay: 0.5s" d="M40 120 C 80 120, 100 100, 100 80 L100 60 C 100 30, 80 40, 40 40" />
+                
+                <!-- Main nodes -->
+                <circle class="node main" cx="40" cy="160" r="8" />
+                <circle class="node main" cx="40" cy="120" r="8" />
+                <circle class="node main" cx="40" cy="80" r="8" />
+                <circle class="node main" cx="40" cy="40" r="8" />
+                
+                <!-- Feature nodes -->
+                <circle class="node feat" cx="100" cy="80" r="8" />
+                <circle class="node feat" cx="100" cy="60" r="8" />
+                
+                <!-- Head -->
+                <circle class="node head anim-pulse" cx="40" cy="40" r="4" />
+                
+                <!-- Labels -->
+                <text x="60" y="44" fill="var(--text2)" font-family="monospace" font-size="10">main</text>
+                <text x="120" y="64" fill="var(--text2)" font-family="monospace" font-size="10">feature</text>
+            </svg>
+        </div>
+    </header>
+
+    <!-- ¿POR QUÉ ESTE CURSO? -->
+    <section class="section" id="que-es">
+        <div class="container">
+            <div class="section-header">
+                <h2>¿Por qué este curso?</h2>
+                <p>El control de versiones es la herramienta más importante de un desarrollador</p>
+            </div>
+            <div class="cards-grid">
+                <div class="card reveal">
+                    <span class="card-icon" style="color: var(--secondary)"><i class="fa-solid fa-brain"></i></span>
+                    <h3>Entiende el "Por qué"</h3>
+                    <p>No solo te enseñamos comandos. Te explicamos <strong>cómo Git guarda los datos</strong> (blobs, trees, commits). Cuando entiendes el modelo mental, Git deja de parecer magia negra.</p>
+                </div>
+                <div class="card reveal">
+                    <span class="card-icon" style="color: var(--warning)"><i class="fa-solid fa-code-pull-request"></i></span>
+                    <h3>Resolución de Conflictos</h3>
+                    <p>El terror de muchos. Aprenderás exactamente <strong>por qué ocurren los conflictos</strong>, cómo leer las marcas de conflicto (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>) y cómo resolverlos con confianza.</p>
+                </div>
+                <div class="card reveal">
+                    <span class="card-icon" style="color: var(--danger)"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <h3>Reescribir la Historia</h3>
+                    <p>Aprende a usar <code>rebase</code>, <code>commit --amend</code> y el rebase interactivo para mantener un <strong>historial limpio y lineal</strong> antes de compartir tu código con el equipo.</p>
+                </div>
+            </div>
+
+            <div class="info-box info" style="margin-top:2rem">
+                <span class="info-box-icon"><i class="fa-solid fa-lightbulb"></i></span>
+                <div class="info-box-text">
+                    <strong>Filosofía del curso:</strong> En Git, casi todo el trabajo es <strong>local</strong>. Aprenderás a dominar tu repositorio local antes de interactuar con repositorios remotos como GitHub o GitLab, lo que hace que la colaboración sea mucho más sencilla.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FLUJO BÁSICO -->
+    <section class="section section-dark" id="flujo">
+        <div class="container">
+            <div class="section-header">
+                <h2>El Flujo de Trabajo en Git</h2>
+                <p>Los tres estados fundamentales de un archivo en Git</p>
+            </div>
+
+            <div style="max-width:900px; margin: 0 auto;">
+                <div class="pipeline" style="justify-content:center; gap:2rem; flex-wrap: wrap;">
+                    <div class="pipeline-step" style="border-color: var(--text3)">
+                        <span class="ps-icon"><i class="fa-solid fa-folder-open" style="color:var(--text3)"></i></span>
+                        <span class="ps-label" style="font-size: 1rem;">Working Directory</span>
+                        <span class="ps-sub">Tus archivos modificados</span>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; align-items:center; color:var(--text2)">
+                        <span style="font-family:monospace; font-size:0.8rem; margin-bottom:0.5rem">git add</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 1.5rem"></i>
+                    </div>
+
+                    <div class="pipeline-step" style="border-color: var(--warning)">
+                        <span class="ps-icon"><i class="fa-solid fa-box-open" style="color:var(--warning)"></i></span>
+                        <span class="ps-label" style="font-size: 1rem;">Staging Area</span>
+                        <span class="ps-sub">Archivos listos para commit</span>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; align-items:center; color:var(--secondary)">
+                        <span style="font-family:monospace; font-size:0.8rem; margin-bottom:0.5rem">git commit</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 1.5rem"></i>
+                    </div>
+
+                    <div class="pipeline-step" style="border-color: var(--secondary)">
+                        <span class="ps-icon"><i class="fa-solid fa-database" style="color:var(--secondary)"></i></span>
+                        <span class="ps-label" style="font-size: 1rem;">Local Repository</span>
+                        <span class="ps-sub">Historial guardado</span>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; align-items:center; color:var(--accent)">
+                        <span style="font-family:monospace; font-size:0.8rem; margin-bottom:0.5rem">git push</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 1.5rem"></i>
+                    </div>
+
+                    <div class="pipeline-step" style="border-color: var(--accent); background: rgba(88, 166, 255, 0.05)">
+                        <span class="ps-icon"><i class="fa-brands fa-github" style="color:var(--accent)"></i></span>
+                        <span class="ps-label" style="font-size: 1rem;">Remote (GitHub)</span>
+                        <span class="ps-sub">Código compartido</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NAVEGACIÓN POR MÓDULOS -->
+    <section class="section" id="modulos">
+        <div class="container">
+            <div class="section-header">
+                <h2>Módulos del Curso</h2>
+                <p>Navega a través de los diferentes conceptos y ejercicios prácticos</p>
+            </div>
+            
+            <div class="nav-cards">
+                <a href="ssh.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #1f2937, #111827); border-bottom: 2px solid var(--secondary)">
+                        <span class="nav-card-icon" style="color: var(--secondary)"><i class="fa-solid fa-key"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>0. SSH y GitHub</h3>
+                        <p>Configura tus llaves SSH para conectar de forma segura y sin contraseñas en Windows, Mac y Linux.</p>
+                        <span class="nav-tag">ssh-keygen</span>
+                        <span class="nav-tag">github</span>
+                    </div>
+                </a>
+                
+                <a href="fundamentos.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #2d333b, #1c2128)">
+                        <span class="nav-card-icon" style="color: var(--text)"><i class="fa-solid fa-cubes"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>1. Fundamentos e Internals</h3>
+                        <p>Instalación, configuración inicial, y cómo Git almacena realmente la información (objetos, blobs, trees, commits).</p>
+                        <span class="nav-tag">Config</span>
+                        <span class="nav-tag">Internals</span>
+                    </div>
+                </a>
+                
+                <a href="operaciones.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #10b98122, #05966922); border-bottom: 2px solid var(--secondary)">
+                        <span class="nav-card-icon" style="color: var(--secondary)"><i class="fa-solid fa-terminal"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>2. Operaciones Básicas</h3>
+                        <p>Crear repositorios, el ciclo add-commit, ver historial de cambios, Conventional Commits y cómo ignorar archivos.</p>
+                        <span class="nav-tag">add</span>
+                        <span class="nav-tag">commit</span>
+                        <span class="nav-tag">log</span>
+                    </div>
+                </a>
+                
+                <a href="ramas.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #f59e0b22, #d9770622); border-bottom: 2px solid var(--warning)">
+                        <span class="nav-card-icon" style="color: var(--warning)"><i class="fa-solid fa-code-branch"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>3. Ramas y Merging</h3>
+                        <p>Trabajar en paralelo sin romper nada. Estrategias de Merge (Fast-forward vs 3-way), resolución de conflictos clásicos.</p>
+                        <span class="nav-tag">branch</span>
+                        <span class="nav-tag">merge</span>
+                        <span class="nav-tag">conflictos</span>
+                    </div>
+                </a>
+                
+                <a href="rebase.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #f43f5e22, #e11d4822); border-bottom: 2px solid var(--danger)">
+                        <span class="nav-card-icon" style="color: var(--danger)"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>4. Rebase y Reescribir Historia</h3>
+                        <p>Mantener un historial limpio. Diferencias entre Merge y Rebase, Rebase Interactivo para limpiar commits.</p>
+                        <span class="nav-tag">rebase</span>
+                        <span class="nav-tag">squash</span>
+                        <span class="nav-tag">amend</span>
+                    </div>
+                </a>
+                
+                <a href="remotos.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #06b6d422, #0891b222); border-bottom: 2px solid var(--accent)">
+                        <span class="nav-card-icon" style="color: var(--accent)"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>5. Repositorios Remotos</h3>
+                        <p>Trabajar con GitHub/GitLab. Clonar, sincronizar, diferencias entre fetch y pull, Pull Requests y stashing temporal.</p>
+                        <span class="nav-tag">push</span>
+                        <span class="nav-tag">pull</span>
+                        <span class="nav-tag">stash</span>
+                    </div>
+                </a>
+                
+                <a href="avanzado.html" class="nav-card">
+                    <div class="nav-card-top" style="background: linear-gradient(135deg, #8b5cf622, #7c3aed22); border-bottom: 2px solid var(--purple)">
+                        <span class="nav-card-icon" style="color: var(--purple)"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    </div>
+                    <div class="nav-card-body">
+                        <h3>6. Git Avanzado</h3>
+                        <p>Técnicas ninja: git bisect para encontrar bugs, reflog de supervivencia, hooks, submódulos y worktrees.</p>
+                        <span class="nav-tag">bisect</span>
+                        <span class="nav-tag">reflog</span>
+                        <span class="nav-tag">hooks</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo"><i class="fa-brands fa-git-alt"></i> Git Bootcamp</div>
+                <p>La documentación definitiva para dominar el control de versiones, creada para desarrolladores que quieren entender qué pasa bajo el capó.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Módulos</h5>
+                <ul>
+                    <li><a href="ssh.html">0. SSH GitHub</a></li>
+                    <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                    <li><a href="operaciones.html">2. Operaciones Básicas</a></li>
+                    <li><a href="ramas.html">3. Ramas y Merging</a></li>
+                    <li><a href="rebase.html">4. Rebase</a></li>
+                    <li><a href="remotos.html">5. Remotos y GitHub</a></li>
+                    <li><a href="avanzado.html">6. Avanzado</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h5>Recursos Adicionales</h5>
+                <ul>
+                    <li><a href="https://git-scm.com/docs" target="_blank"><i class="fa-solid fa-book"></i> Documentación Oficial</a></li>
+                    <li><a href="https://learngitbranching.js.org/" target="_blank"><i class="fa-solid fa-gamepad"></i> Learn Git Branching</a></li>
+                    <li><a href="https://www.conventionalcommits.org/" target="_blank"><i class="fa-solid fa-table-list"></i> Conventional Commits</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Prism.js para resaltado de sintaxis (se cargará en todas las páginas) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-git.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile nav toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.querySelector('.nav-links');
+        if (navToggle) {
+            navToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('open');
+            });
+        }
+
+        // Reveal on scroll
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('animate-in');
+                    observer.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        reveals.forEach(el => observer.observe(el));
+    </script>
+</body>
+
+</html>
