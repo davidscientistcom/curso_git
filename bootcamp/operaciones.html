@@ -31,6 +31,7 @@
                 <li><a href="rebase.html">Rebase</a></li>
                 <li><a href="remotos.html">Remotos</a></li>
                 <li><a href="avanzado.html">Avanzado</a></li>
+                <li><a href="laboratorio.html" style="color:var(--accent); font-weight:600;"><i class="fa-solid fa-flask"></i> Laboratorio</a></li>
             </ul>
             <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
         </div>
@@ -63,6 +64,15 @@
 git init</code></pre>
         </div>
         <p>Esto crea una subcarpeta oculta <code>.git/</code> donde se almacenará todo el historial. Tu carpeta ahora es un "Working Directory" válido.</p>
+
+        <div class="info-box danger" style="margin-top: 1.5rem">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                <strong>Error Común - Fuera del repositorio:</strong> Si intentas ejecutar comandos como <code>git add</code> o <code>git commit</code> ANTES de hacer <code>git init</code> (o si los intentas lanzar fuera de tu carpeta del proyecto, como por ejemplo estando en <code>~/Documentos</code>), Git te dará un error fatal:<br><br>
+                <code>fatal: no es un repositorio git (ni ninguno de los directorios superiores): .git</code><br><br>
+                Asegúrate siempre de haber inicializado el repositorio y de haber entrado en la carpeta correcta con el comando <code>cd</code> antes de operar.
+            </div>
+        </div>
 
         <h3>3.2 Comprobar el Estado (git status)</h3>
         <p>Este es el comando que más usarás. Te dice en qué estado se encuentran tus archivos (Untracked, Modified, Staged).</p>

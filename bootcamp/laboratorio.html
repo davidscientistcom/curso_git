@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Práctico — Git Bootcamp</title>
+    <meta name="description" content="Ejercicios completos y avanzados de Git para practicar resolución de conflictos, rebase interactivo, resets y colaboración.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH GitHub</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="operaciones.html">Operaciones</a></li>
+                <li><a href="ramas.html">Ramas & Merge</a></li>
+                <li><a href="rebase.html">Rebase</a></li>
+                <li><a href="remotos.html">Remotos</a></li>
+                <li><a href="avanzado.html">Avanzado</a></li>
+                <li><a href="laboratorio.html" class="active" style="color:var(--accent); font-weight:600;"><i class="fa-solid fa-flask"></i> Laboratorio</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--accent)">
+        <i class="fa-solid fa-flask-vial page-hero-icon" style="color: var(--accent)"></i>
+        <h1>Laboratorio Práctico</h1>
+        <p>El Gran Reto Final: Varias horas de simulacro intensivo de la vida real</p>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a> <span class="breadcrumb-sep">/</span> <span style="color:var(--text)">Laboratorio</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>Prueba Final: De Cero a Git Master</h2>
+        <p>Este laboratorio está diseñado para poner a prueba absolutamente todo lo que has aprendido. No te daremos los comandos exactos masticados paso a paso. Te daremos los <strong>requisitos y escenarios</strong>, y tú deberás usar tu terminal para resolverlos. Te recomendamos dedicar varias horas a este ejercicio, rompiendo cosas sin miedo y solucionándolas.</p>
+
+        <div class="info-box danger">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                <strong>Aviso:</strong> Si te atascas en algún punto, vuelve a leer las lecciones correspondientes. No busques ciegamente en Stack Overflow copiando comandos que no entiendes. Usa `git status` y `git log --oneline --graph --all` constantemente para guiarte.
+            </div>
+        </div>
+
+        <h3>Fase 1: El Despegue (Fundamentos y Operaciones)</h3>
+        <p>Imagina que te acaban de contratar en una startup para rehacer su plataforma principal. Te han dado acceso a tu nueva máquina y te piden que empieces a estructurar el proyecto.</p>
+
+        <div class="exercise-box">
+            <h4><i class="fa-solid fa-rocket"></i> Misión 1</h4>
+            <ol>
+                <li>Crea un directorio llamado <code>startup-platform</code> e inicializa un repositorio de Git completamente vacío.</li>
+                <li>El sistema va a generar archivos basura de logs (todo lo que termine en <code>.log</code>) y secretos (un archivo llamado <code>secrets.env</code>). Crea la estructura necesaria usando <code>.gitignore</code> para que Git jamás mire esos archivos.</li>
+                <li>Crea un archivo <code>index.js</code> que contenga un simple <code>console.log("Iniciando sistema");</code>.</li>
+                <li>Haz que tu <strong>primer commit</strong> incluya tanto el archivo ignorador como el script inicial, usando la convención correcta de Conventional Commits (ej. algo tipo `feat` o `init`).</li>
+            </ol>
+            <details>
+                <summary style="cursor: pointer; color: var(--accent); margin-top: 1rem;"><strong><i class="fa-solid fa-circle-check"></i> Ver Validación Esperada</strong></summary>
+                <div style="margin-top: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--accent); color: var(--text2);">
+                    Al ejecutar <code>git status</code> tu árbol debe estar limpio. Si creas manualmente por terminal un archivo <code>error.log</code> y otro <code>secrets.env</code> e intentas hacer <code>git add .</code>, Git debería ignorarlos por completo sin incluirlos en el Stage.
+                </div>
+            </details>
+        </div>
+
+        <h3>Fase 2: El Desarrollo en Paralelo (Ramas y Merge)</h3>
+        <p>El proyecto arranca y hay dos tareas que hacer a la vez. Como eres "Full Stack", vas a hacer ambas, pero en mundos aislados para no cruzar cables.</p>
+
+        <div class="exercise-box" style="border-top-color: var(--warning)">
+            <h4 style="color:var(--warning)"><i class="fa-solid fa-code-branch"></i> Misión 2</h4>
+            <ol>
+                <li>Crea y muévete a una rama llamada <code>feature/login</code>. En esa rama edita tu <code>index.js</code> añadiendo la lógica para un login ficticio y haz un commit limpio.</li>
+                <li>Vuelve a la rama <code>main</code> (asegúrate de que el login desaparece de tu editor).</li>
+                <li>Crea y muévete a otra rama llamada <code>feature/database</code> (¡Asegúrate de haberla sacado desde main y no desde login!). Añade un archivo <code>db.json</code>, ponle unos datos falsos y haz un commit en esa rama.</li>
+                <li>Integra todo: vuelve a <code>main</code>. Haz merge de la rama de base de datos. Como no hay divergencias, fíjate que hará un <strong>Fast-Forward</strong>.</li>
+                <li>Ahora haz merge de la rama de login. Como tu main ya avanzó gracias a la base de datos, este merge forzará un <strong>Three-Way Merge</strong>. Escribe un mensaje de commit bonito cuando Git te abra el editor.</li>
+                <li>Elimina ambas ramas de feature, ya que no sirven de nada.</li>
+            </ol>
+            <details>
+                <summary style="cursor: pointer; color: var(--warning); margin-top: 1rem;"><strong><i class="fa-solid fa-circle-check"></i> Ver Validación Esperada</strong></summary>
+                <div style="margin-top: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--warning); color: var(--text2);">
+                    Al ejecutar <code>git log --oneline --graph</code>, deberías ver una línea recta al principio, una bifurcación que sale y luego un globo que vuelve a unirse a la rama principal (un "merge commit").
+                </div>
+            </details>
+        </div>
+
+        <h3>Fase 3: El Desastre Inminente (Time Travel y Reset)</h3>
+        <p>Eran las 3 de la mañana y cometiste un error gravísimo. El CTO está a punto de revisar tu código.</p>
+
+        <div class="exercise-box" style="border-top-color: var(--danger)">
+            <h4 style="color:var(--danger)"><i class="fa-solid fa-skull-crossbones"></i> Misión 3</h4>
+            <ol>
+                <li>Estando en <code>main</code>, edita el <code>index.js</code> y pon tu contraseña personal del banco en texto plano (ej. <code>const db_pass = "123456";</code>). Haz un commit llamado <code>fix: añadidas contraseñas seguras</code>.</li>
+                <li>Te das cuenta del error. Quieres <strong>matar</strong> ese commit como si nunca hubiera existido en la historia (como no lo has subido a GitHub aún, es totalmente lícito asesinar el historial). Usando la máquina del tiempo de Git (<code>git reset --hard</code>), vuelve exactamente al commit anterior, eliminando tu commit de las contraseñas para siempre.</li>
+                <li>Revisa tu código, la contraseña ha desaparecido mágicamente de tu editor.</li>
+                <li>¡Espera! Resulta que en ese commit también habías añadido 300 líneas de código vital que ahora se han esfumado porque borraste a lo bruto. <strong>Misión crítica: ¡Resucita el código muerto!</strong></li>
+                <li>Ejecuta <code>git reflog</code>, encuentra el hash criptográfico del commit que acabas de destruir sin piedad.</li>
+                <li>Crea una rama llamada <code>rescate</code> a partir de ese hash perdido y muévete a ella para recuperar tus archivos.</li>
+            </ol>
+        </div>
+
+        <h3>Fase 4: El Caos Colaborativo (Conflictos en Remoto)</h3>
+        <p>Para esto, vamos a simular a dos programadores compartiendo repositorio, clonando la carpeta en dos sitios distintos en tu PC local.</p>
+
+        <div class="exercise-box" style="border-top-color: var(--accent)">
+            <h4 style="color:var(--accent)"><i class="fa-solid fa-people-arrows"></i> Misión 4</h4>
+            <ol>
+                <li>Vuelve a <code>main</code> en tu primera carpeta. Inicializa un repositorio "Bare" (sin working directory) falso como si fuera el servidor de GitHub en una carpeta separada por completo: <code>cd .. && git init --bare servidor.git</code></li>
+                <li>En tu primera carpeta, engancha ese servidor ficticio: <code>git remote add origin ../servidor.git</code> y empuja <code>main</code>: <code>git push -u origin main</code></li>
+                <li>¡Simula a tu compañero Roberto! Vete a otro sitio de tu PC, ponte en otra carpeta y haz <code>git clone la_ruta_a_servidor.git roberto-folder</code>.</li>
+                <li>Como "Roberto", edita la primera línea del archivo <code>index.js</code>. Haz un commit y haz <code>git push</code> al servidor.</li>
+                <li>Vuelve a tu carpeta original (Tú). <strong>SIN HABER HECHO PULL TODAVÍA</strong>, edita exactamente la misma primera línea del archivo <code>index.js</code> con otra cosa.</li>
+                <li>En lugar de hacer commit, haz algo a medias. Usa <code>git stash</code> para guardártelo en el cajón temporal.</li>
+                <li>Haz <code>git pull</code> de lo que subió Roberto. Verás que entra suavemente.</li>
+                <li>Saca tu trabajo del cajón: <code>git stash pop</code>. ¡BAM! Conflicto inminente contra el código de Roberto.</li>
+                <li>Abre tu editor, localiza los <code>&lt;&lt;&lt;&lt;</code>, <code>====</code> y <code>&gt;&gt;&gt;&gt;</code>, borra las marcas y quédate con una versión que junte ambas cosas lógicamente. Haz add, commit final y push. Has ganado.</li>
+            </ol>
+        </div>
+
+        <h3>Fase 5: Cirugía Mayor y Estética (Rebase Interactivo)</h3>
+        <p>A tu Jefe Técnico (Tech Lead) no le gustan los historiales sucios. Y tú, por desgracia, has estado trabajando muy desordenadamente.</p>
+
+        <div class="exercise-box" style="border-top-color: var(--purple)">
+            <h4 style="color:var(--purple)"><i class="fa-solid fa-wand-magic-sparkles"></i> Misión 5</h4>
+            <ol>
+                <li>Saca una nueva rama: <code>git switch -c feature/dashboard</code></li>
+                <li>Comienza a cambiar varias cosas del proyecto creando commits MUY MALOS:
+                    <ul>
+                        <li>Borra una línea, haz commit: <code>"wip 1"</code></li>
+                        <li>Añade un botón, haz commit: <code>"test"</code></li>
+                        <li>Arregla un typo del botón, haz commit: <code>"fix botón tonto"</code></li>
+                        <li>Termina el diseño, haz commit: <code>"ya funciona casi"</code></li>
+                    </ul>
+                </li>
+                <li>Ahora tienes 4 commits espantosos. Antes de hacer merge a main, ejecuta <strong>Git Rebase Interactivo</strong> diciéndole a Git que afecte a esos últimos 4 commits (<code>HEAD~4</code>).</li>
+                <li>Se abrirá tu terminal. Cambia la palabra <code>pick</code> de los 3 últimos commits por la palabra <code>squash</code> (o la letra s), para "aplastarlos" hacia arriba contra el primer commit.</li>
+                <li>Deja el primer commit que dice "wip 1" con la palabra <code>reword</code> (o r) para poder reescribir su título.</li>
+                <li>Guarda y cierra el editor. Git te pedirá inmediatamente un nuevo título consolidado. Escribe: <code>feat: añadir dashboard completo de estadísticas</code>.</li>
+                <li>Revisa tu <code>git log --oneline</code>. Magia. Tienes un historial glorioso, inmaculado, de un solo commit profesional. Ya puedes volver a main y mergearlo orgullosamente.</li>
+            </ol>
+            <details>
+                <summary style="cursor: pointer; color: var(--purple); margin-top: 1rem;"><strong><i class="fa-solid fa-circle-check"></i> Enhorabuena</strong></summary>
+                <div style="margin-top: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--purple); color: var(--text2);">
+                    Si has sido capaz de resolver todos estos problemas tú mismo sin destruir irremediablemente ningún repositorio, <strong>oficialmente eres un experto en Git</strong> con más capacidad real de resolución de conflictos que el 70% de la industria. ¡Estás listo para usar GitHub a nivel profesional!
+                </div>
+            </details>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo"><i class="fa-brands fa-git-alt"></i> Git Bootcamp</div>
+                <p>La documentación definitiva para dominar el control de versiones, creada para desarrolladores que quieren entender qué pasa bajo el capó.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Módulos</h5>
+                <ul>
+                    <li><a href="ssh.html">0. SSH GitHub</a></li>
+                    <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                    <li><a href="operaciones.html">2. Operaciones Básicas</a></li>
+                    <li><a href="ramas.html">3. Ramas y Merging</a></li>
+                    <li><a href="rebase.html">4. Rebase</a></li>
+                    <li><a href="remotos.html">5. Remotos y GitHub</a></li>
+                    <li><a href="avanzado.html">6. Avanzado</a></li>
+                    <li><a href="laboratorio.html" style="color:var(--accent)"><i class="fa-solid fa-flask"></i> Laboratorio</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h5>Recursos Adicionales</h5>
+                <ul>
+                    <li><a href="https://git-scm.com/docs" target="_blank"><i class="fa-solid fa-book"></i> Documentación Oficial</a></li>
+                    <li><a href="https://learngitbranching.js.org/" target="_blank"><i class="fa-solid fa-gamepad"></i> Learn Git Branching</a></li>
+                    <li><a href="https://www.conventionalcommits.org/" target="_blank"><i class="fa-solid fa-table-list"></i> Conv. Commits</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.querySelector('.nav-links');
+        if (navToggle) {
+            navToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>

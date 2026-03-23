@@ -31,6 +31,7 @@
                 <li><a href="rebase.html">Rebase</a></li>
                 <li><a href="remotos.html">Remotos</a></li>
                 <li><a href="avanzado.html">Avanzado</a></li>
+                <li><a href="laboratorio.html" style="color:var(--accent); font-weight:600;"><i class="fa-solid fa-flask"></i> Laboratorio</a></li>
             </ul>
             <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
         </div>
@@ -56,6 +57,17 @@
         <p>Hace un tiempo que GitHub (y GitLab) eliminaron la posibilidad de subir código usando usuario y contraseña tradicionales por HTTPS por motivos de seguridad. Hoy en día necesitas un <strong>Token de Acceso Personal (PAT)</strong> o usar una <strong>Clave SSH</strong>.</p>
         
         <p>La clave SSH es el método recomendado por profesionales: lo configuras una sola vez en tu ordenador y te olvidas. Es como darle tu huella dactilar a GitHub.</p>
+
+        <div class="info-box danger" style="margin-top: 1.5rem">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                <strong>Fallo de Autenticación HTTPS:</strong> Si has intentado clonar o subir código usando la URL HTTPS de tu repositorio y al poner tu contraseña te salta el error:<br><br>
+                <code>remote: Invalid username or token. Password authentication is not supported for Git operations.</code><br><br>
+                Este error no tiene nada que ver con tu clave SSH ni significa que falle aleatoriamente. Significa que el repositorio desde el que subes tiene apuntada la URL vieja por HTTPS en lugar de la nueva por SSH. Para que pase a usar la clave de forma automática sin pedir contraseñas, tienes que cambiar la URL del origin:<br><br>
+                <code>git remote set-url origin git@github.com:tu_usuario/tu_repo.git</code><br>
+                <i>(Puedes encontrar esta URL exacta en el botón verde "Code" de GitHub, sección "SSH").</i>
+            </div>
+        </div>
 
         <h3>¿Qué es una clave SSH?</h3>
         <p>Es un par de archivos de texto que se guardan ocultos en tu ordenador (normalmente en la carpeta <code>~/.ssh</code>). Consiste en:</p>
@@ -213,6 +225,7 @@ ssh-add ~/.ssh/id_ed25519</code></pre>
                     <li><a href="rebase.html">4. Rebase</a></li>
                     <li><a href="remotos.html">5. Remotos y GitHub</a></li>
                     <li><a href="avanzado.html">6. Avanzado</a></li>
+                    <li><a href="laboratorio.html" style="color:var(--accent)"><i class="fa-solid fa-flask"></i> Laboratorio</a></li>
                 </ul>
             </div>
             <div class="footer-links">

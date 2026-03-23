@@ -31,6 +31,7 @@
                 <li><a href="rebase.html">Rebase</a></li>
                 <li><a href="remotos.html" class="active">Remotos</a></li>
                 <li><a href="avanzado.html">Avanzado</a></li>
+                <li><a href="laboratorio.html" style="color:var(--accent); font-weight:600;"><i class="fa-solid fa-flask"></i> Laboratorio</a></li>
             </ul>
             <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
         </div>
@@ -106,6 +107,16 @@ git push -u origin feature-perfiles
                 <h5 style="color: var(--danger)">git pull (Descarga Destructiva)</h5>
                 <p>Es un atajo de dos comandos por debajo: <strong><code>git fetch</code> + <code>git merge</code></strong>. Se descarga lo nuevo e intenta fusionarlo activamente sobre los archivos que tienes abiertos.</p>
                 <code style="margin-top:0.5rem; display:block">git pull origin main</code>
+            </div>
+        </div>
+
+        <div class="info-box warning" style="margin-top: 1.5rem">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div class="info-box-text">
+                <strong>Error al descargar si tu historial local está sucio:</strong> Si tienes archivos modificados y sin commitear en tu editor y lanzas un comando de <code>git pull</code> (especialmente si tu Git está configurado para hacerlo usando rebase por defecto), te bloqueará con este mensaje:<br><br>
+                <code>error: no se puede pull con rebase: Tienes cambios sin marcar.</code><br>
+                <code>error: Por favor, confírmalos o guárdalos.</code><br><br>
+                Se trata un bloqueo intencionado. La descarga con fusión sobreescribiría los cambios en los que estás trabajando actualmente. La solución es <strong>limpiar tu árbol de trabajo antes de traerte nada</strong>: Puedes hacer un <code>git commit</code> normal para sellar tus archivos, o si estaban a medias, puedes "guardarlos temporalmente en un cajón" haciendo <code>git stash</code>, luego lanzas tu <code>git pull</code> y tras descargar haces <code>git stash pop</code> para recuperar todo como lo tenías.
             </div>
         </div>
 
