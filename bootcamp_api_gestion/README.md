@@ -1,51 +1,40 @@
-# Laboratorio FASE 0: El Monolito Espagueti
+# Laboratorio FASE 1: FastAPI y Modularidad
 
-¡Bienvenidos a la Fase 0 del sistema de gestión!
-Este código representa lo que **NO debemos hacer** a la hora de diseñar software.
-Es un ejemplo perfecto de código "legado" mal estructurado, sin arquitectura y con testing frágil.
+¡Bienvenidos a la Fase 1! 
+En la fase anterior vimos los horrores del código acoplado en un solo fichero `gestion_monolito.py`. Ahora hemos introducido **FastAPI** y **Pydantic**.
+Hemos borrado el antiguo código y hemos reorganizado el proyecto en módulos dentro de la carpeta `app/`.
 
-## Escenario Actual
-Tienes una aplicación que gestiona Clientes, Productos y Ventas. Todo el código está amontonado en un solo fichero: `gestion_monolito.py`.
-
-## Problemas de este código:
-1. **Estado Global**: Se usan variables globales (`clientes_db`, etc.) compartidas que provocan efectos secundarios inesperados entre ejecuciones y tests.
-2. **Complejidad Ciclomática**: Las funciones como `crear_cliente` tienen un anidamiento profundo de estructuras `if/else`, dificultando la lectura y las pruebas.
-3. **Alto Acoplamiento**: La lógica de validación de datos está directamente acoplada con la lógica de negocio y de "almacenamiento".
-4. **Tests Frágiles**: Los tests dependen del orden de ejecución. Si ejecutas un solo test aisladamente, fallará porque asume un estado creado por tests anteriores.
+## ¿Qué ha cambiado?
+1. **Modelos Pydantic (`schemas.py`)**: Hemos eliminado todos los `if/else` interminables. Pydantic se encarga de que la edad sea `int`, que sea mayor a 18, y que el email sea válido.
+2. **Modularidad (`routers/`)**: Hemos separado la lógica en diferentes archivos según el dominio (Clientes, Productos, Ventas).
+3. **Manejo de Errores Standard**: En lugar de hacer prints o devolver diccionarios con la clave `"error"`, ahora levantamos `HTTPException`s y retornamos códigos HTTP reales (400, 404, 422).
+4. **Tests Claros y Aislados**: Con FastAPI `TestClient` y los **fixtures** de Pytest, limpiamos el estado global antes de cada prueba. El orden de los tests ya no importa y nunca fallarán al azar.
 
 ## Instrucciones del Laboratorio
 
-### 1. Preparar el Entorno (Conda)
-Asegúrate de estar usando el entorno:
-```bash
-conda activate bootcamp_git
-```
-*(Si no lo tienes, créalo con `conda create -n bootcamp_git python=3.10 -y` y luego instala las dependencias).*
-
+### 1. Preparar el Entorno
+Seguimos en el entorno `bootcamp_git`. Hay que instalar las nuevas dependencias:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Rompe los tests a propósito
-Ejecuta las pruebas de forma secuencial:
+### 2. Ejecutar las Pruebas
+Ahora ejecutar tests es una maravilla y no dependen del orden:
 ```bash
-pytest -v
+pytest tests/ -v
 ```
-¡Todo verde! Pero ahora intenta ejecutar **solo un test específico**:
+Pruébalos individualmente y verás que no se rompen. El fixture `run_around_tests` (en `test_api.py`) se encarga de limpiar las listas globales antes y después de cada prueba.
+
+### 3. Cobertura de Código (Coverage)
+Corre el siguiente comando:
 ```bash
-pytest test_gestion.py::test_realizar_venta_vip_exito -v
+pytest --cov=app tests/
 ```
-¿Qué pasa? **¡Falla estrepitosamente!** Falla porque dependía de que los tests anteriores rellenaran las listas globales. Esto en la vida real es un desastre que te hará perder días de trabajo.
+Veréis que la cobertura ha subido drásticamente comparado con la fase 0. ¿Por qué? ¡Porque la complejidad ciclomática de nuestro código es casi cero! Pydantic hace el levantamiento de excepciones por nosotros, así que nuestras rutas solo tienen la "ruta feliz" y excepciones HTTP claras.
 
-### 3. Medición de Cobertura Basura
-Ejecuta este comando para ver qué porcentaje del código prueban realmente nuestros tests:
-```bash
-pytest --cov=gestion_monolito
-```
-Observarás que hay partes considerables del código (rutas de error, comprobaciones de tipos) que jamás se llegaron a testear.
+### Limitaciones Actuales (Tu reto analítico)
+1. Aún usamos listas en memoria (`database.py`) que actúan como estado global y complican el acceso concurrente real.
+2. **Lo peor de todo:** La lógica de negocio está acoplada directamente a FastAPI (en los endpoints / routers). Si quisiéramos usar esta lógica en una tarea en background o desde una consola, tendríamos que reescribirla.
 
-### Tu Objetivo Analítico
-Abre `gestion_monolito.py`. Fíjate en el bloque `if/else` de la función de ventas. Piensa: ¿Qué pasaría si te piden añadir un descuento especial si el cliente cumple los años hoy? ¿Dónde lo pondrías? ¿Cuántos tests se romperían?
-
-**Para ver la solución profesional a esto, cambia a la siguiente rama:**
-`git checkout 1_fase_fastapi_modular`
+**Para ver la solución profesional a estos problemas (Arquitectura Limpia), cambia a la rama final:**
+`git checkout 2_fase_arquitectura_avanzada`
