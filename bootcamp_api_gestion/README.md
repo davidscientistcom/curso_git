@@ -1,5 +1,9 @@
 # Laboratorio FASE 0: El Monolito Espagueti
 
+> ⚠️ **TIP DE NAVEGACIÓN Git:**
+> Estás en la **Fase 0**. Para avanzar a la **Fase 1**, ejecuta en tu terminal:
+> `git checkout 1_fase_fastapi_modular`
+
 ¡Bienvenidos a la Fase 0 del sistema de gestión!
 Este código representa lo que **NO debemos hacer** a la hora de diseñar software.
 Es un ejemplo perfecto de código "legado" mal estructurado, sin arquitectura y con testing frágil.
