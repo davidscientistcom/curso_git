@@ -1,44 +1,57 @@
-# Proyecto Práctico: Evolución de Arquitectura API
+# Laboratorio FASE 0: El Monolito Espagueti
 
-Bienvenido al laboratorio práctico del Bootcamp de Git & GitHub. 
-Esta carpeta contiene un código que **cambia y evoluciona dependiendo de la rama de Git en la que te encuentres**.
+> ⚠️ **Navegación del Laboratorio (Git):**
+> Estás en la **Fase 0 (El Monolito)**. 
+> - **Para salir del Laboratorio (volver al curso):** `git checkout main`
+> - **Para ir a la Siguiente Fase (Fase 1):** `git checkout 1_fase_fastapi_modular`
+> - **Para ir a la Fase Final (Fase 2):** `git checkout 2_fase_arquitectura_avanzada`
 
-## ¿De qué trata este laboratorio?
-Vas a vivir en primera persona cómo un proyecto "espagueti" mal diseñado (Fase 0) evoluciona a un código modular con **FastAPI** (Fase 1) y finalmente a una **Arquitectura Limpia** profesional (Fase 2). En cada fase verás sus problemas, aprenderás a solucionarlos y probarás el código usando los tests.
+¡Bienvenidos a la Fase 0 del sistema de gestión!
+Este código representa lo que **NO debemos hacer** a la hora de diseñar software.
+Es un ejemplo perfecto de código "legado" mal estructurado, sin arquitectura y con testing frágil.
 
----
+## Escenario Actual
+Tienes una aplicación que gestiona Clientes, Productos y Ventas. Todo el código está amontonado en un solo fichero: `gestion_monolito.py`.
 
-## 🗺️ MAPA DE RAMAS (Cómo navegar el laboratorio)
+## Problemas de este código:
+1. **Estado Global**: Se usan variables globales (`clientes_db`, etc.) compartidas que provocan efectos secundarios inesperados entre ejecuciones y tests.
+2. **Complejidad Ciclomática**: Las funciones como `crear_cliente` tienen un anidamiento profundo de estructuras `if/else`, dificultando la lectura y las pruebas.
+3. **Alto Acoplamiento**: La lógica de validación de datos está directamente acoplada con la lógica de negocio y de "almacenamiento".
+4. **Tests Frágiles**: Los tests dependen del orden de ejecución. Si ejecutas un solo test aisladamente, fallará porque asume un estado creado por tests anteriores.
 
-Para hacer este laboratorio paso a paso, **debes abrir tu terminal en esta carpeta** y usar el comando `git checkout` para "saltar" entre las fases del código.
+## Instrucciones del Laboratorio
 
-### 🟡 Fase 0: El Monolito Inicial
-Aquí verás todo el código en un solo archivo, con estado global y pruebas frágiles.
-👉 **Comando para iniciar:**
+### 1. Preparar el Entorno (Conda)
+Asegúrate de estar usando el entorno:
 ```bash
-git checkout 0_fase_inicial
+conda activate bootcamp_git
+```
+*(Si no lo tienes, créalo con `conda create -n bootcamp_git python=3.10 -y` y luego instala las dependencias).*
+
+```bash
+pip install -r requirements.txt
 ```
 
-### 🟠 Fase 1: FastAPI y Modularidad
-Aquí introducimos FastAPI y Pydantic para validar datos, pero aún está acoplado a la BD.
-👉 **Comando para saltar:**
+### 2. Rompe los tests a propósito
+Ejecuta las pruebas de forma secuencial:
 ```bash
-git checkout 1_fase_fastapi_modular
+pytest -v
 ```
-
-### 🟢 Fase 2: Arquitectura Limpia (SOLID)
-El diseño final y profesional con Inyección de Dependencias, Casos de Uso y Dominios puros.
-👉 **Comando para ver la solución final:**
+¡Todo verde! Pero ahora intenta ejecutar **solo un test específico**:
 ```bash
-git checkout 2_fase_arquitectura_avanzada
+pytest test_gestion.py::test_realizar_venta_vip_exito -v
 ```
+¿Qué pasa? **¡Falla estrepitosamente!** Falla porque dependía de que los tests anteriores rellenaran las listas globales. Esto en la vida real es un desastre que te hará perder días de trabajo.
 
----
+### 3. Medición de Cobertura Basura
+Ejecuta este comando para ver qué porcentaje del código prueban realmente nuestros tests:
+```bash
+pytest --cov=gestion_monolito
+```
+Observarás que hay partes considerables del código (rutas de error, comprobaciones de tipos) que jamás se llegaron a testear.
 
-## 🛠️ Instrucciones Generales
-1. **Entorno**: Asegúrate de tener listo tu entorno Conda. En la Fase 2 tienes un script `setup_conda.sh` si lo necesitas, o puedes crearlo manualmente:
-   `conda create -n bootcamp_git python=3.10 -y && conda activate bootcamp_git && pip install fastapi uvicorn httpx pytest pytest-cov`
-2. **Lee el README de cada rama**: Una vez hagas `git checkout`, el archivo `README.md` que estás leyendo AHORA MISMO **cambiará automáticamente** para explicarte la fase actual.
-3. **No rompas la historia principal**: Al ser un laboratorio de Git, siéntete libre de experimentar, ¡pero ten cuidado de no mezclar ramas si no se te pide!
+### Tu Objetivo Analítico
+Abre `gestion_monolito.py`. Fíjate en el bloque `if/else` de la función de ventas. Piensa: ¿Qué pasaría si te piden añadir un descuento especial si el cliente cumple los años hoy? ¿Dónde lo pondrías? ¿Cuántos tests se romperían?
 
-¡Abre tu terminal, activa el entorno Virtual y ejecuta `git checkout 0_fase_inicial` para comenzar la magia!
+**Para ver la solución profesional a esto, cambia a la siguiente rama:**
+`git checkout 1_fase_fastapi_modular`
