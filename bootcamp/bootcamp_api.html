@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caso Práctico: API Gestión Evolutiva — Git Bootcamp</title>
+    <meta name="description" content="Laboratorio de evolución de código: De código espagueti con mala cobertura a Arquitectura Limpia con FastAPI.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <i class="fa-brands fa-git-alt brand-icon"></i>
+                <a href="index.html" class="brand-text">Git Bootcamp</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="ssh.html">0. SSH</a></li>
+                <li><a href="fundamentos.html">1. Fundamentos</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bootcamp_api.html" class="active" style="color:var(--accent); font-weight:600;"><i class="fa-solid fa-server"></i> Caso Práctico API</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- PAGE HERO -->
+    <header class="page-hero" style="border-bottom-color: var(--accent)">
+        <i class="fa-solid fa-server page-hero-icon" style="color: var(--accent)"></i>
+        <h1>Evolución y Testing (API Gestión)</h1>
+        <p>Aprende las consecuencias del mal código y cómo refactorizar progresivamente hasta llegar a la Arquitectura Limpia</p>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content">
+        <h2>El Caso Práctico de la Vida Real</h2>
+        <p>En este laboratorio te enfrentamos a un problema común: <strong>código heredado de mala calidad</strong>. A lo largo de tres fases distintas, verás cómo el código evoluciona y cómo la calidad del testing mejora. Todo esto se encuentra desarrollado en la carpeta <code>bootcamp_api_gestion</code> del repositorio de este curso.</p>
+
+        <div class="info-box info">
+            <span class="info-box-icon"><i class="fa-solid fa-code-branch"></i></span>
+            <div class="info-box-text">
+                <strong>¿Cómo navegar por las Fases?</strong><br>
+                Cada fase está programada y subida en una <strong>rama</strong> diferente dentro del repositorio <code>curso_git</code>.<br>
+                Para acceder al código de cada fase, abre tu terminal y ejecuta: <code>git checkout &lt;nombre_de_la_rama&gt;</code>
+            </div>
+        </div>
+
+        <h3>Fase 0: El Monolito Inicial</h3>
+        <p><strong>Rama:</strong> <code class="language-bash">git checkout 0_fase_inicial</code></p>
+        <p>En esta rama te encontrarás un archivo llamado <code>gestion_monolito.py</code>. Contiene la lógica de negocio, validación y almacenamiento de manera completamente "espagueti" (acoplado). Utiliza estado global para las bases de datos y muchísimos <code>if/else</code> que incrementan la complejidad ciclomática.</p>
+
+        <div class="exercise-box">
+            <h4><i class="fa-solid fa-bug"></i> Problemas y Testing Basura</h4>
+            <ol>
+                <li><strong>Dependencias y Herramientas:</strong> Para esta fase, necesitas instalar las herramientas de testing en Python.
+                    <pre><code class="language-bash">pip install pytest pytest-cov</code></pre>
+                </li>
+                <li><strong>Fragilidad de los Test:</strong> Si haces <code class="language-bash">pytest test_gestion.py -v</code> verás los test. Como el código usa variables globales, ¡el resultado de un test depende de si se ha ejecutado el anterior! Si ejecutas el test de ventas aisladamente, fallará.</li>
+                <li><strong>Cobertura (Coverage):</strong> Ejecuta: <br>
+                    <pre><code class="language-bash">pytest --cov=gestion_monolito</code></pre>
+                    Notarás que la cobertura es bajísima. ¿Por qué? Porque cubrir todas y cada una de las ramas generadas por las validaciones anidadas es un infierno logístico.
+                </li>
+                <li><strong>El reto:</strong> Modifica el código para forzar cambios (como romper un test para ver cómo falla al fallar una validación) e intenta entender por qué el código fuertemente acoplado es doloroso.</li>
+            </ol>
+        </div>
+
+        <h3>Fase 1: Framework y Modularidad</h3>
+        <p><strong>Rama:</strong> <code class="language-bash">git checkout 1_fase_fastapi_modular</code></p>
+        <p>Hemos desechado el archivo monolítico y lo hemos sustituido por el potente framework web moderno: <strong>FastAPI</strong>. Ahora el código está dividido en carpetas (Pydantic para Schemas, Rutas, etc.).</p>
+
+        <div class="exercise-box" style="border-top-color: var(--warning)">
+            <h4 style="color:var(--warning)"><i class="fa-solid fa-layer-group"></i> Refactorización Intermedia</h4>
+            <ol>
+                <li><strong>Instalación:</strong> Aquí hay más que <code>pytest</code>. Ejecuta <code class="language-bash">pip install fastapi uvicorn httpx</code></li>
+                <li><strong>Cómo solucionamos los problemas de la Fase 0:</strong>
+                    <ul>
+                        <li>Hemos delegado TODA la validación masiva de código espagueti a los <strong>schemas de Pydantic</strong>. Si mandas un email falso, FastAPI devuelve un error de validación 422 Automático.</li>
+                        <li>Las rutas están separadas por archivos en la carpeta <code>routers</code>.</li>
+                        <li><strong>Testing de APIs Real:</strong> Ahora usamos el <code>TestClient</code>. Ya podemos testear la API como un cliente de verdad. Además, hemos configurado <strong>Fixtures</strong> en Pytest para resetear la base de datos entre tests. ¡El orden ya no importa!</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <h3>Fase 2: Arquitectura Limpia y SOLID</h3>
+        <p><strong>Rama:</strong> <code class="language-bash">git checkout 2_fase_arquitectura_avanzada</code></p>
+        <p>La Fase 1 era buena, pero la lógica de la API seguía mezclada con la lógica de base de datos simulada y HTTP. En la versión final, profesionalizamos la estructura organizándolo todo en capas de <strong>Clean Architecture</strong> (Dominio, Casos de Uso, Infraestructura).</p>
+
+        <div class="exercise-box" style="border-top-color: var(--purple)">
+            <h4 style="color:var(--purple)"><i class="fa-solid fa-gem"></i> Nivel Senior</h4>
+            <ol>
+                <li><strong>Independencia del Framework:</strong> Fíjate dentro de <code>src/use_cases</code>. ¡Ahí está toda la lógica contable y de negocio pura, pero no se menciona FastAPI para nada!</li>
+                <li><strong>Inversión de Dependencias (DIP):</strong> FastAPI inyecta las dependencias hacia las interfaces genéricas. Esto permite la genialidad más grande para Testing...</li>
+                <li><strong>Testing Definitivo (Mocks triviales):</strong> Mira el archivo <code>test_api.py</code>. Gracias a <code>app.dependency_overrides</code>, sobreescribir la base de datos para pasarle un "falso repositorio" se hace con 2 líneas de código.
+                <pre><code class="language-python"># Así sobreescribimos las dependencias para testing
+app.dependency_overrides[get_cliente_repository] = lambda: test_cliente_repo</code></pre>
+                </li>
+            </ol>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo"><i class="fa-brands fa-git-alt"></i> Git Bootcamp</div>
+                <p>La documentación definitiva para dominar el control de versiones.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Módulos</h5>
+                <ul>
+                    <li><a href="laboratorio.html">Laboratorio Principal</a></li>
+                    <li><a href="bootcamp_api.html" style="color:var(--accent)"><i class="fa-solid fa-server"></i> Caso Práctico API</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Git Bootcamp — Documentación y Ejercicios Prácticos</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.querySelector('.nav-links');
+        if (navToggle) {
+            navToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>
