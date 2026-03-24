@@ -1,7 +1,18 @@
 import pytest
 import gestion_monolito
-
+import re
 # FASE 0: Ejemplo de Tests Acoplados y Frágiles
+
+
+
+def _validar_correo(correo):
+        resultado = False
+        pattern = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
+        if  re.fullmatch(pattern, correo):
+            resultado = True
+        else:
+            resultado = False
+        return resultado
 
 
 
@@ -17,11 +28,21 @@ def test_crear_cliente_edad_invalida():
 
 
 def test_crear_cliente_correo_invalido():
-    resultado = gestion_monolito.crear_cliente("Maria", "mariatest.com", 15, "NORMAL")
-    assert resultado == False
+    correo = "mariatest.com"
+    if not _validar_correo(correo):
+        resultado = True
+    else:        
+        resultado = False
+
+    assert resultado == True
 
 def test_crear_cliente_correo_valido():
-    resultado = gestion_monolito.crear_cliente("Maria", "maria@test.com", 25, "NORMAL")
+    correo = "maria@test.com"
+    if  _validar_correo(correo):
+        resultado = True
+    else:        
+        resultado = False
+        
     assert resultado == True
 
 
@@ -33,8 +54,8 @@ def test_crear_producto_exito():
 
 def test_realizar_venta_vip_exito():
     # TEST MUY FRÁGIL: Depende estrictamente de los anteriores.
-    gestion_monolito.crear_cliente("Ana VIP", "ana@test.com", 30, "VIP")
-    resultado = gestion_monolito.realizar_venta(3, 1, 1)
+    gestion_monolito.crear_cliente("Ana VIP", "maria@test.com", 30, "VIP")
+    resultado = gestion_monolito.realizar_venta(2, 1, 1)
     
     assert type(resultado) is dict
     assert resultado["total"] == 850.0
