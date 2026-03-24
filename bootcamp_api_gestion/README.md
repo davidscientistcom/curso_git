@@ -1,5 +1,10 @@
 # Laboratorio FASE 1: FastAPI y Modularidad
 
+> ⚠️ **TIP DE NAVEGACIÓN Git:**
+> Estás en la **Fase 1**.
+> - Para volver atrás: `git checkout 0_fase_inicial`
+> - Para avanzar a la final: `git checkout 2_fase_arquitectura_avanzada`
+
 ¡Bienvenidos a la Fase 1! 
 En la fase anterior vimos los horrores del código acoplado en un solo fichero `gestion_monolito.py`. Ahora hemos introducido **FastAPI** y **Pydantic**.
 Hemos borrado el antiguo código y hemos reorganizado el proyecto en módulos dentro de la carpeta `app/`.
