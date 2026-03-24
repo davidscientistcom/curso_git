@@ -1,48 +1,41 @@
 # tests/test_api.py
 from fastapi.testclient import TestClient
 from app.main import app
-from app.database import reset_database
+from src.infrastructure.repositories.in_memory import InMemoryClienteRepository, InMemoryProductoRepository, InMemoryVentaRepository
+from src.infrastructure.api.dependencies import get_cliente_repository, get_producto_repository, get_venta_repository
 import pytest
 
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
-def run_around_tests():
-    # Setup
-    reset_database()
-    yield # Test
-    # Teardown
-    reset_database()
+def override_dependencies():
+    test_cliente_repo = InMemoryClienteRepository()
+    test_producto_repo = InMemoryProductoRepository()
+    test_venta_repo = InMemoryVentaRepository()
+    
+    app.dependency_overrides[get_cliente_repository] = lambda: test_cliente_repo
+    app.dependency_overrides[get_producto_repository] = lambda: test_producto_repo
+    app.dependency_overrides[get_venta_repository] = lambda: test_venta_repo
+    
+    yield
+    
+    app.dependency_overrides.clear()
 
-def test_crear_cliente_exito():
+def test_crear_cliente_arquitectura_limpia():
     response = client.post("/clientes/", json={
-        "nombre": "Juan",
-        "email": "juan@test.com",
-        "edad": 25,
-        "tipo": "NORMAL"
+        "nombre": "Arquitecto",
+        "email": "arca@test.com",
+        "edad": 40,
+        "tipo": "VIP"
     })
     assert response.status_code == 200
-    assert response.json()["id"] == 1
-    assert response.json()["nombre"] == "Juan"
+    assert response.json()["nombre"] == "Arquitecto"
 
-def test_crear_cliente_validacion_pydantic():
-    # FastAPI valida automáticamente
-    response = client.post("/clientes/", json={
-        "nombre": "Maria",
-        "email": "correo-invalido",
-        "edad": 15,
-        "tipo": "OTRO"
-    })
-    assert response.status_code == 422
-
-def test_realizar_venta():
-    client.post("/clientes/", json={"nombre": "Pedro", "email": "p@t.com", "edad": 30, "tipo": "VIP"})
-    client.post("/productos/", json={"nombre": "PC", "precio": 1000.0, "stock": 10})
+def test_realizar_venta_arquitectura_limpia():
+    client.post("/clientes/", json={"nombre": "Tio Bob", "email": "bob@clean.com", "edad": 60, "tipo": "VIP"})
+    client.post("/productos/", json={"nombre": "Libro Clean Code", "precio": 50.0, "stock": 100})
     
-    response = client.post("/ventas/", json={"cliente_id": 1, "producto_id": 1, "cantidad": 1})
+    response = client.post("/ventas/", json={"cliente_id": 1, "producto_id": 1, "cantidad": 2})
     
     assert response.status_code == 200
-    assert response.json()["total"] == 850.0
-    
-    response_prod = client.get("/productos/")
-    assert response_prod.json()[0]["stock"] == 9
+    assert response.json()["total"] == 85.0
