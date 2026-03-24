@@ -1,0 +1,13 @@
+
+git checkout 0_fase_inicial:
+
+Solo contiene gestion_monolito.py, test_gestion.py y requirements.txt.
+Su propio README.md dedicado a la Fase 0 que te explica qué problemas hay (estado global, nula arquitectura) y te insta a romper los tests a propósito para que los alumnos vean lo malo que es.
+git checkout 1_fase_fastapi_modular:
+
+Borra el monolito y contiene la separación clásica con FastApi: main.py, database.py, schemas.py y los routers/.
+Su propio README.md que enfatiza cómo Pydantic salvó la vida acortando los if/else, pero dejando como problema el acoplamiento a FastAPI.
+git checkout 2_fase_arquitectura_avanzada:
+
+Contiene la Clean Architecture y SOLID (src/domain, src/use_cases, src/infrastructure).
+Su propio README.md (el que viste antes) que explica la Inyección de Dependencias, las interfaces y cómo los mockeos en tests ahora son triviales. Además incluye el setup_conda.sh final.
