@@ -1,9 +1,10 @@
 # Laboratorio FASE 2: Arquitectura Limpia (Clean Architecture) y SOLID
 
-> ⚠️ **TIP DE NAVEGACIÓN Git:**
-> Estás en la **Fase 2 (Final)**. 
-> - Para volver al principio: `git checkout 0_fase_inicial`
-> - Para ir a la fase intermedia: `git checkout 1_fase_fastapi_modular`
+> ⚠️ **Navegación del Laboratorio (Git):**
+> Estás en la **Fase 2 (Arquitectura Limpia)**. 
+> - **Para salir del Laboratorio (volver al curso):** `git checkout main`
+> - **Para ir al Principio (Fase 0):** `git checkout 0_fase_inicial`
+> - **Para volver a la Fase Anterior (Fase 1):** `git checkout 1_fase_fastapi_modular`
 
 ¡Bienvenidos a la Fase Final!
 Hemos transformado nuestro código de un monolito acoplado a una estructura profesional altamente escalable.
