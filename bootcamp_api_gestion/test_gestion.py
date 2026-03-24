@@ -3,6 +3,8 @@ import gestion_monolito
 
 # FASE 0: Ejemplo de Tests Acoplados y Frágiles
 
+
+
 def test_crear_cliente_exito():
     resultado = gestion_monolito.crear_cliente("Juan Perez", "juan@test.com", 25, "NORMAL")
     assert resultado == True
@@ -13,6 +15,16 @@ def test_crear_cliente_edad_invalida():
     resultado = gestion_monolito.crear_cliente("Maria", "maria@test.com", 15, "NORMAL")
     assert resultado == False
 
+
+def test_crear_cliente_correo_invalido():
+    resultado = gestion_monolito.crear_cliente("Maria", "mariatest.com", 15, "NORMAL")
+    assert resultado == False
+
+def test_crear_cliente_correo_valido():
+    resultado = gestion_monolito.crear_cliente("Maria", "maria@test.com", 25, "NORMAL")
+    assert resultado == True
+
+
 def test_crear_producto_exito():
     resultado = gestion_monolito.crear_producto("Laptop", 1000.0, 50)
     assert "error" not in resultado
@@ -22,7 +34,7 @@ def test_crear_producto_exito():
 def test_realizar_venta_vip_exito():
     # TEST MUY FRÁGIL: Depende estrictamente de los anteriores.
     gestion_monolito.crear_cliente("Ana VIP", "ana@test.com", 30, "VIP")
-    resultado = gestion_monolito.realizar_venta(2, 1, 1)
+    resultado = gestion_monolito.realizar_venta(3, 1, 1)
     
     assert type(resultado) is dict
     assert resultado["total"] == 850.0
