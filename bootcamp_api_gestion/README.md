@@ -1,8 +1,10 @@
 # Laboratorio FASE 0: El Monolito Espagueti
 
-> ⚠️ **TIP DE NAVEGACIÓN Git:**
-> Estás en la **Fase 0**. Para avanzar a la **Fase 1**, ejecuta en tu terminal:
-> `git checkout 1_fase_fastapi_modular`
+> ⚠️ **Navegación del Laboratorio (Git):**
+> Estás en la **Fase 0 (El Monolito)**. 
+> - **Para salir del Laboratorio (volver al curso):** `git checkout main`
+> - **Para ir a la Siguiente Fase (Fase 1):** `git checkout 1_fase_fastapi_modular`
+> - **Para ir a la Fase Final (Fase 2):** `git checkout 2_fase_arquitectura_avanzada`
 
 ¡Bienvenidos a la Fase 0 del sistema de gestión!
 Este código representa lo que **NO debemos hacer** a la hora de diseñar software.
