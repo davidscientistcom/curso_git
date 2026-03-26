@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Tests (pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",           // lanzamos pytest como módulo
+      "args": [
+        "bootcamp_api_gestion/test",  // ruta real de los tests
+        "-v",                        // verbose: ves qué test se ejecuta
+        "--no-header",
+        "-rN"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true            // false si quieres entrar en librerías
+    }
+  ]
+}
