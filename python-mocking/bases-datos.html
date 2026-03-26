@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bases de Datos — Python Mocking Bootcamp</title>
+    <meta name="description" content="Cómo testear y mockear bases de datos en Python y FastAPI: SQLite in-memory, SQLAlchemy sessions, repository pattern, fakeredis, mongomock.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html">Conceptos</a></li>
+                <li><a href="arquitectura.html">Arquitectura</a></li>
+                <li><a href="librerias.html">Librerías</a></li>
+                <li><a href="fastapi.html">FastAPI</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bases-datos.html" class="active">Bases de Datos</a></li>
+                <li><a href="fuentes.html">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb"><div class="breadcrumb-inner"><a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>Bases de Datos</span></div></div>
+
+    <div class="page-hero">
+        <h1>Mocking de <span class="gradient-text">bases de datos</span></h1>
+        <p>Dos caminos seguros: <strong>fakes</strong> (in-memory) o <strong>integration tests</strong> con DB real local.
+        </p>
+    </div>
+
+    <div class="content">
+
+        <h2>Nivel 0 — La verdad incómoda: mockear la DB suele ser frágil</h2>
+        <p>Si mockeas <code>cursor.execute</code> o <code>Session.execute</code>, tu test se acopla a detalles internos.
+            El resultado típico: refactors sanos rompen tests y el suite se vuelve frágil.</p>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Regla práctica:</strong>
+                mockea el <em>contrato</em> (repositorio) o usa una DB ligera para integración.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — Opción A: repositorio + mock (unit tests rápidos)</h2>
+        <p>Este patrón se explica muy bien: la DB queda detrás de una interfaz.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — caso de uso + repositorio</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> Protocol
+
+<span class="kw">class</span> <span class="type">OrderRepo</span>(Protocol):
+    <span class="kw">def</span> <span class="fn">total_orders_for_user</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">int</span>: ...
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="type">UserStats</span>:
+    repo: OrderRepo
+
+    <span class="kw">def</span> <span class="fn">vip_badge</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">str</span>:
+        n = self.repo.total_orders_for_user(user_id)
+        <span class="kw">return</span> <span class="str">"VIP"</span> <span class="kw">if</span> n &gt;= <span class="num">50</span> <span class="kw">else</span> <span class="str">"NORMAL"</span></code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — mock del repo</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> Mock
+<span class="kw">from</span> app.stats <span class="kw">import</span> UserStats
+
+<span class="kw">def</span> <span class="fn">test_vip_badge</span>():
+    repo = Mock()
+    repo.total_orders_for_user.return_value = <span class="num">51</span>
+
+    stats = UserStats(repo=repo)
+    <span class="kw">assert</span> stats.vip_badge(<span class="str">"u1"</span>) == <span class="str">"VIP"</span>
+    repo.total_orders_for_user.assert_called_once_with(<span class="str">"u1"</span>)</code></pre>
+        </div>
+
+        <h2>Nivel 1 — Opción B: fake en memoria (cuando la DB es simple)</h2>
+        <p>Un fake es una implementación real pero “mini”. Es útil porque es tangible y estable.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — fake repo con dict</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">class</span> <span class="type">FakeOrderRepo</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.orders = {}  <span class="cmt"># user_id -&gt; count</span>
+
+    <span class="kw">def</span> <span class="fn">total_orders_for_user</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">int</span>:
+        <span class="kw">return</span> self.orders.get(user_id, <span class="num">0</span>)
+
+    <span class="kw">def</span> <span class="fn">add_order</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">None</span>:
+        self.orders[user_id] = self.orders.get(user_id, <span class="num">0</span>) + <span class="num">1</span></code></pre>
+        </div>
+
+        <h2>Nivel 2 — Integration tests con SQLAlchemy + SQLite in-memory</h2>
+        <p>Esto elimina “mocks mentirosos”: ejecutas SQL real, pero rápido y local.</p>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Truco importante:</strong> SQLite in-memory vive por conexión.
+                Si creas múltiples conexiones, “pierdes” tablas. Por eso se suele reutilizar engine y usar transacciones.
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — fixture de sesión transaccional</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="cmt"># tests/conftest.py (esqueleto didáctico)</span>
+<span class="kw">import</span> pytest
+<span class="kw">from</span> sqlalchemy <span class="kw">import</span> create_engine
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> sessionmaker
+
+<span class="kw">@pytest.fixture</span>(scope=<span class="str">"session"</span>)
+<span class="kw">def</span> <span class="fn">engine</span>():
+    <span class="kw">return</span> create_engine(<span class="str">"sqlite+pysqlite:///:memory:"</span>, future=<span class="kw">True</span>)
+
+<span class="kw">@pytest.fixture</span>()
+<span class="kw">def</span> <span class="fn">db_session</span>(engine):
+    <span class="cmt"># 1) conexión + transacción por test</span>
+    connection = engine.connect()
+    trans = connection.begin()
+
+    Session = sessionmaker(bind=connection, autoflush=<span class="kw">False</span>, autocommit=<span class="kw">False</span>, future=<span class="kw">True</span>)
+    session = Session()
+
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> session
+    <span class="kw">finally</span>:
+        session.close()
+        trans.rollback()  <span class="cmt"># 2) deja la DB limpia</span>
+        connection.close()</code></pre>
+        </div>
+
+        <h2>Nivel 2 — FastAPI + DB: override de `get_db()`</h2>
+        <p>El patrón estándar es que FastAPI tenga una dependencia <code>get_db</code> que yield-ea una sesión.
+            En tests, la reemplazas por una sesión de test.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — dependencia get_db (patrón típico)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="cmt"># app/db.py</span>
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> Session
+
+<span class="kw">def</span> <span class="fn">get_db</span>() -&gt; Session:
+    db = ...  <span class="cmt"># Session real (engine real)</span>
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> db
+    <span class="kw">finally</span>:
+        db.close()</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — override get_db en tests</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> fastapi.testclient <span class="kw">import</span> TestClient
+<span class="kw">from</span> app.main <span class="kw">import</span> app
+<span class="kw">from</span> app.db <span class="kw">import</span> get_db
+
+<span class="kw">def</span> <span class="fn">test_api_with_test_db</span>(db_session):
+    <span class="kw">def</span> <span class="fn">override_db</span>():
+        <span class="kw">yield</span> db_session
+
+    app.dependency_overrides[get_db] = override_db
+
+    client = TestClient(app)
+    res = client.get(<span class="str">"/users/1"</span>)
+
+    <span class="kw">assert</span> res.status_code == <span class="num">200</span>
+
+    app.dependency_overrides.clear()</code></pre>
+        </div>
+
+        <h2>Nivel 2 — Redis y Mongo: preferir fakes compatibles</h2>
+        <p>Si tu app usa Redis o Mongo, es habitual usar:</p>
+        <ul>
+            <li><code>fakeredis</code> para Redis (API compatible en memoria)</li>
+            <li><code>mongomock</code> para MongoDB (colecciones en memoria)</li>
+        </ul>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Nota:</strong> aquí no haces “mocking” a mano; eliges una implementación fake que mantiene
+                la API. Esto reduce la fragilidad.
+            </div>
+        </div>
+
+        <h2>Nivel 2 — ¿Cuándo usar DB real (Docker/Testcontainers)?</h2>
+        <p>Si dependes de features específicas (Postgres JSONB, locks, índices), SQLite no representa la realidad.
+            En ese caso, usa una DB real local (Docker) y marca esos tests como integración.</p>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Nota:</strong> “Mockear Postgres no te da garantías de Postgres”.
+                Si el bug está en el SQL o en el dialecto, necesitas integración.
+            </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="fuentes.html" class="btn btn-primary">→ Siguiente: Fuentes</a>
+            <a href="fastapi.html" class="btn btn-outline">← FastAPI</a>
+        </div>
+
+    </div>
+
+    <footer class="footer"><div class="footer-bottom"><p>Bases de Datos — Python Mocking Bootcamp</p></div></footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block').querySelector('pre');
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

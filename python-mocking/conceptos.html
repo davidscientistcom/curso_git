@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conceptos — Python Mocking Bootcamp</title>
+    <meta name="description" content="Conceptos clave de mocking en Python: mock vs stub vs fake, patching, spies y errores típicos.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html" class="active">Conceptos</a></li>
+                <li><a href="arquitectura.html">Arquitectura</a></li>
+                <li><a href="librerias.html">Librerías</a></li>
+                <li><a href="fastapi.html">FastAPI</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bases-datos.html">Bases de Datos</a></li>
+                <li><a href="fuentes.html">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>Conceptos</span>
+        </div>
+    </div>
+
+    <div class="page-hero">
+        <h1>Conceptos <span class="gradient-text">fundamentales</span></h1>
+        <p>Lo mínimo (pero completo) que debes dominar antes de escribir un solo mock.</p>
+    </div>
+
+    <div class="content">
+
+        <h2>Nivel 0 — ¿Qué problema resuelve el mocking?</h2>
+        <p>Cuando escribes un test, quieres validar <strong>tu lógica</strong>, no la red, no la base de datos, y no el
+            proveedor externo que hoy está caído. Mocking es la técnica para <strong>controlar dependencias</strong>
+            (IO, tiempo, random, servicios externos) y convertir un test en algo:</p>
+        <ul>
+            <li><strong>rápido</strong> (milisegundos)</li>
+            <li><strong>determinista</strong> (mismo input → mismo output)</li>
+            <li><strong>aislado</strong> (falla por tu código, no por el entorno)</li>
+        </ul>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Analogía:</strong> un test es un laboratorio. El mocking es el conjunto de controles para que la
+                temperatura, la luz y los reactivos sean exactamente los que tú decides.
+            </div>
+        </div>
+
+        <h2>Nivel 0 — Vocabulario: dummy, stub, fake, spy, mock</h2>
+        <p>Se suele mezclar todo. Aquí tienes un mapa mental que evita confusiones:</p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Stubs / Fakes (estado útil)</h5>
+                <ul>
+                    <li><strong>Stub:</strong> devuelve valores predecibles.</li>
+                    <li><strong>Fake:</strong> implementación simplificada (pero real) en memoria.</li>
+                    <li>Ej: una “DB” en memoria con un dict.</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Spies / Mocks (verificación)</h5>
+                <ul>
+                    <li><strong>Spy:</strong> observa llamadas (argumentos, veces).</li>
+                    <li><strong>Mock:</strong> reemplaza + verifica contrato.</li>
+                    <li>Ej: comprobar que se llamó a <code>send_email(to)</code> 1 vez.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Error típico:</strong> usar mocks para todo. Si tu test sólo verifica “se llamó a X”, sin
+                validar resultados, puedes terminar con <strong>tests verdes que no detectan bugs reales</strong>.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — Patching: “parchea donde se usa, no donde se define”</h2>
+        <p>Esta es la regla que más dudas genera. El mock no se aplica a “la función original”, se aplica al
+            <strong>nombre (símbolo) que tu código usa en ese módulo</strong>.</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">python — Ejemplo mínimo del problema (import)</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code><span class="cmt"># archivo: app/service.py</span>
+<span class="kw">from</span> app.email <span class="kw">import</span> send_email
+
+<span class="kw">def</span> <span class="fn">register_user</span>(email: <span class="type">str</span>) -&gt; <span class="type">None</span>:
+    <span class="cmt"># ... lógica ...</span>
+    send_email(email)  <span class="cmt"># &lt;-- aquí se usa el símbolo local send_email</span>
+
+<span class="cmt"># archivo: app/email.py</span>
+<span class="kw">def</span> <span class="fn">send_email</span>(to: <span class="type">str</span>) -&gt; <span class="type">None</span>:
+    <span class="cmt"># llamada real a SMTP / proveedor externo</span>
+    ...</code></pre>
+        </div>
+
+        <p>Si quieres mockear <code>send_email</code> cuando se ejecuta <code>register_user</code>, debes parchear
+            <code>app.service.send_email</code> (el símbolo dentro del módulo que lo usa).</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">python + pytest — patch correcto (donde se usa)</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code><span class="cmt"># tests/test_service.py</span>
+<span class="kw">from</span> unittest.mock <span class="kw">import</span> patch
+
+<span class="kw">def</span> <span class="fn">test_register_user_sends_email</span>():
+    <span class="kw">with</span> patch(<span class="str">"app.service.send_email"</span>) <span class="kw">as</span> send_email_mock:
+        <span class="kw">from</span> app.service <span class="kw">import</span> register_user
+        register_user(<span class="str">"a@b.com"</span>)
+
+        <span class="cmt"># assert de comportamiento: se llamó 1 vez con el argumento esperado</span>
+        send_email_mock.assert_called_once_with(<span class="str">"a@b.com"</span>)</code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Frase útil:</strong> “No parcheas la función. Parcheas el <em>nombre</em> que tu módulo
+                tiene en su espacio de nombres.”
+            </div>
+        </div>
+
+        <h2>Nivel 1 — ¿Qué se debe mockear? (heurística simple)</h2>
+        <p>Mockea lo que sea <strong>IO</strong> o <strong>no determinista</strong>:</p>
+        <ul>
+            <li>HTTP (requests/httpx) y SDKs externos</li>
+            <li>Base de datos (con repositorios o sesiones aisladas)</li>
+            <li>Tiempo (<code>datetime.now()</code>)</li>
+            <li>Aleatoriedad</li>
+            <li>Sistema de ficheros</li>
+        </ul>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Regla:</strong> tu “core” (lógica pura) debería poder testearse sin mocks.
+                Los mocks viven en los <strong>bordes</strong> (adapters) del sistema.
+            </div>
+        </div>
+
+        <h2>Nivel 2 — Assertions que realmente detectan bugs</h2>
+        <p>Un patrón sano es combinar:</p>
+        <ul>
+            <li><strong>assert de resultado</strong> (lo que devuelve tu función)</li>
+            <li><strong>assert de interacción</strong> (qué llamadas hizo a dependencias)</li>
+        </ul>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">python — Resultado + interacción (ejemplo realista)</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code><span class="cmt"># app/pricing.py</span>
+<span class="kw">def</span> <span class="fn">final_price</span>(base: <span class="type">float</span>, discount_pct: <span class="type">float</span>) -&gt; <span class="type">float</span>:
+    <span class="kw">return</span> <span class="fn">round</span>(base * (<span class="num">1</span> - discount_pct/<span class="num">100</span>), <span class="num">2</span>)
+
+<span class="cmt"># app/checkout.py</span>
+<span class="kw">from</span> app.pricing <span class="kw">import</span> final_price
+
+<span class="kw">def</span> <span class="fn">checkout_total</span>(items, apply_coupon):
+    subtotal = <span class="fn">sum</span>(i[<span class="num">1</span>] <span class="kw">for</span> i <span class="kw">in</span> items)
+    pct = apply_coupon(subtotal)  <span class="cmt"># dependencia (podemos mockearla)</span>
+    <span class="kw">return</span> final_price(subtotal, pct)</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">python + pytest — mockear la dependencia y validar total</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> Mock
+<span class="kw">from</span> app.checkout <span class="kw">import</span> checkout_total
+
+<span class="kw">def</span> <span class="fn">test_checkout_total_applies_coupon</span>():
+    apply_coupon = Mock(return_value=<span class="num">10</span>)
+
+    total = checkout_total(items=[(<span class="str">"p1"</span>, <span class="num">100.0</span>)], apply_coupon=apply_coupon)
+
+    <span class="cmt"># assert de resultado (lo importante)</span>
+    <span class="kw">assert</span> total == <span class="num">90.0</span>
+
+    <span class="cmt"># assert de interacción (evita bugs de integración dentro de la función)</span>
+    apply_coupon.assert_called_once_with(<span class="num">100.0</span>)</code></pre>
+        </div>
+
+        <h2>Nivel 2 — Los 5 anti-patrones a evitar</h2>
+        <ol>
+            <li><strong>Mockear lo que no es IO</strong>: lógica pura no debería necesitar mocks.</li>
+            <li><strong>Parchear el sitio incorrecto</strong>: test que no controla la dependencia real.</li>
+            <li><strong>Over-spec</strong>: asserts de llamadas demasiado exactos (frágiles).</li>
+            <li><strong>Testear implementación</strong> en vez de comportamiento (se rompe con refactors sanos).</li>
+            <li><strong>Mocks globales</strong> compartidos entre tests (contaminación).</li>
+        </ol>
+
+        <div class="info-box danger">
+            <div class="info-box-text">
+                <strong>Señal roja:</strong> si al cambiar nombres internos (refactor) se rompen 30 tests, tu suite
+                está acoplada a implementación. El mocking está “demasiado cerca”.
+            </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="arquitectura.html" class="btn btn-primary">→ Siguiente: Arquitectura</a>
+            <a href="index.html" class="btn btn-outline">← Volver al inicio</a>
+        </div>
+
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>Conceptos — Python Mocking Bootcamp</p>
+        </div>
+    </footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block').querySelector('pre');
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

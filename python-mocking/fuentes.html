@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuentes — Python Mocking Bootcamp</title>
+    <meta name="description" content="Fuentes oficiales y librerías recomendadas para mocking, pytest, FastAPI, httpx y testing de bases de datos.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html">Conceptos</a></li>
+                <li><a href="arquitectura.html">Arquitectura</a></li>
+                <li><a href="librerias.html">Librerías</a></li>
+                <li><a href="fastapi.html">FastAPI</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bases-datos.html">Bases de Datos</a></li>
+                <li><a href="fuentes.html" class="active">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb"><div class="breadcrumb-inner"><a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>Fuentes</span></div></div>
+
+    <div class="page-hero">
+        <h1>Fuentes <span class="gradient-text">oficiales</span></h1>
+        <p>Recursos para reforzar la explicación y citar referencias sin dudas.</p>
+    </div>
+
+    <div class="content">
+
+        <h2>1) Python (stdlib) — `unittest.mock`</h2>
+        <ul>
+            <li><a href="https://docs.python.org/3/library/unittest.mock.html" target="_blank">Python docs — unittest.mock</a></li>
+            <li><a href="https://docs.python.org/3/library/unittest.mock-examples.html" target="_blank">Python docs — Mock examples</a></li>
+        </ul>
+
+        <h2>2) Pytest</h2>
+        <ul>
+            <li><a href="https://docs.pytest.org/" target="_blank">Pytest documentation</a></li>
+            <li><a href="https://docs.pytest.org/en/stable/how-to/monkeypatch.html" target="_blank">Pytest monkeypatch</a></li>
+            <li><a href="https://pytest-mock.readthedocs.io/" target="_blank">pytest-mock (fixture mocker)</a></li>
+        </ul>
+
+        <h2>3) FastAPI testing</h2>
+        <ul>
+            <li><a href="https://fastapi.tiangolo.com/tutorial/testing/" target="_blank">FastAPI — Testing</a></li>
+            <li><a href="https://www.starlette.io/testclient/" target="_blank">Starlette TestClient</a></li>
+        </ul>
+
+        <h2>4) HTTP mocking</h2>
+        <ul>
+            <li><a href="https://www.python-httpx.org/" target="_blank">httpx docs</a></li>
+            <li><a href="https://www.python-httpx.org/advanced/#mock-transport" target="_blank">httpx MockTransport</a></li>
+            <li><a href="https://lundberg.github.io/respx/" target="_blank">respx (mock para httpx)</a></li>
+            <li><a href="https://github.com/getsentry/responses" target="_blank">responses (mock para requests)</a></li>
+        </ul>
+
+        <h2>5) Tiempo y no determinismo</h2>
+        <ul>
+            <li><a href="https://github.com/spulec/freezegun" target="_blank">freezegun</a></li>
+        </ul>
+
+        <h2>6) Bases de datos y almacenamiento</h2>
+        <ul>
+            <li><a href="https://docs.sqlalchemy.org/en/20/orm/session_basics.html" target="_blank">SQLAlchemy — Session basics</a></li>
+            <li><a href="https://docs.sqlalchemy.org/en/20/orm/session_transaction.html" target="_blank">SQLAlchemy — Transactions</a></li>
+            <li><a href="https://github.com/cunla/fakeredis-py" target="_blank">fakeredis</a></li>
+            <li><a href="https://github.com/mongomock/mongomock" target="_blank">mongomock</a></li>
+        </ul>
+
+        <h2>7) Servicios cloud (opcional)</h2>
+        <ul>
+            <li><a href="https://docs.getmoto.org/" target="_blank">moto (AWS mocking)</a></li>
+        </ul>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Stack mínimo recomendado:</strong> pytest + unittest.mock + FastAPI TestClient + httpx MockTransport.
+                Todo lo demás se introduce como “tooling opcional”.
+            </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="index.html" class="btn btn-primary">← Volver al inicio</a>
+            <a href="conceptos.html" class="btn btn-outline">Releer Conceptos</a>
+        </div>
+
+    </div>
+
+    <footer class="footer"><div class="footer-bottom"><p>Fuentes — Python Mocking Bootcamp</p></div></footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block')?.querySelector('pre');
+            if (!pre) return;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

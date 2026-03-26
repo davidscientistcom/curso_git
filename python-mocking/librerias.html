@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Librerías — Python Mocking Bootcamp</title>
+    <meta name="description" content="Guía de librerías para mocking en Python: unittest.mock, pytest-mock, monkeypatch, freezegun, respx, responses, moto, mongomock y más.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html">Conceptos</a></li>
+                <li><a href="arquitectura.html">Arquitectura</a></li>
+                <li><a href="librerias.html" class="active">Librerías</a></li>
+                <li><a href="fastapi.html">FastAPI</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bases-datos.html">Bases de Datos</a></li>
+                <li><a href="fuentes.html">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb"><div class="breadcrumb-inner"><a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>Librerías</span></div></div>
+
+    <div class="page-hero">
+        <h1>Librerías de <span class="gradient-text">mocking</span></h1>
+        <p>Qué usar, cuándo, y ejemplos mínimos que no fallan.</p>
+    </div>
+
+    <div class="content">
+
+        <h2>Nivel 0 — Tu toolkit base (lo que sí o sí debes dominar)</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Herramienta</th>
+                        <th>Para qué sirve</th>
+                        <th>Cuándo usar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>unittest.mock</code></td>
+                        <td>Mocks, patching, spies, AsyncMock</td>
+                        <td>Siempre (stdlib)</td>
+                    </tr>
+                    <tr>
+                        <td><code>pytest</code></td>
+                        <td>Fixtures, parametrización, plugin ecosystem</td>
+                        <td>Si tu proyecto usa pytest (lo habitual)</td>
+                    </tr>
+                    <tr>
+                        <td><code>pytest-mock</code></td>
+                        <td>Fixture <code>mocker</code> (patch limpio y reversible)</td>
+                        <td>Cuando quieres patch sin <code>with</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>monkeypatch</code> (pytest)</td>
+                        <td>Parchear env vars, attrs, módulos</td>
+                        <td>Config/entorno y patches pequeños</td>
+                    </tr>
+                    <tr>
+                        <td><code>respx</code> / <code>responses</code></td>
+                        <td>Mock de HTTP (httpx/requests)</td>
+                        <td>Servicios externos</td>
+                    </tr>
+                    <tr>
+                        <td><code>freezegun</code></td>
+                        <td>Congelar el tiempo</td>
+                        <td>Caducidades, tokens, ventanas de tiempo</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Idea:</strong> el mocking no es una librería; es una técnica.
+                Las librerías sólo te dan herramientas para aplicarla de forma segura.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — `unittest.mock`: lo esencial en 12 líneas</h2>
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Mock, return_value, side_effect y asserts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> Mock
+
+<span class="kw">def</span> <span class="fn">test_core_uses_dependency</span>():
+    dep = Mock()
+
+    dep.fetch.return_value = {<span class="prop">"value"</span>: <span class="num">10</span>}  <span class="cmt"># 1) controlas salida</span>
+
+    <span class="cmt"># 2) tu código usa dep.fetch()</span>
+    result = dep.fetch(<span class="str">"id-1"</span>)[<span class="prop">"value"</span>] * <span class="num">2</span>
+
+    <span class="kw">assert</span> result == <span class="num">20</span>
+    dep.fetch.assert_called_once_with(<span class="str">"id-1"</span>)
+
+<span class="kw">def</span> <span class="fn">test_side_effect_exception</span>():
+    dep = Mock()
+    dep.fetch.side_effect = TimeoutError(<span class="str">"boom"</span>)
+
+    <span class="kw">try</span>:
+        dep.fetch(<span class="str">"id"</span>)
+        <span class="kw">assert</span> <span class="kw">False</span>
+    <span class="kw">except</span> TimeoutError:
+        <span class="kw">assert</span> <span class="kw">True</span></code></pre>
+        </div>
+
+        <h2>Nivel 1 — Patching: decorator vs context manager</h2>
+        <p>Ambos son correctos. El context manager es más explícito y ayuda a ver el alcance.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — `patch` como context manager</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> patch
+
+<span class="kw">def</span> <span class="fn">test_patch_context</span>():
+    <span class="kw">with</span> patch(<span class="str">"app.payments.charge_card"</span>) <span class="kw">as</span> charge:
+        charge.return_value = {<span class="prop">"ok"</span>: <span class="kw">True</span>}
+
+        <span class="cmt"># aquí llamas a tu función que internamente usa charge_card</span>
+        ...
+
+        charge.assert_called_once()</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — `patch` como decorator (más compacto)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> patch
+
+<span class="kw">@patch</span>(<span class="str">"app.payments.charge_card"</span>)
+<span class="kw">def</span> <span class="fn">test_patch_decorator</span>(charge):
+    charge.return_value = {<span class="prop">"ok"</span>: <span class="kw">True</span>}
+    ...
+    charge.assert_called_once()</code></pre>
+        </div>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Evita:</strong> encadenar muchos decorators. Es fácil perder el hilo.
+                Para varios patches, <code>pytest-mock</code> suele quedar más limpio.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — `autospec`: el antídoto contra mocks “mentirosos”</h2>
+        <p>Sin <code>autospec</code> puedes escribir tests que llaman métodos que no existen. Con <code>autospec</code>
+            el mock respeta la firma real.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — patch con autospec</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> patch
+
+<span class="kw">def</span> <span class="fn">test_autospec</span>():
+    <span class="kw">with</span> patch(<span class="str">"app.email.send_email"</span>, autospec=<span class="kw">True</span>) <span class="kw">as</span> send:
+        <span class="cmt"># si send_email(to, subject) requiere 2 args y tú pasas 1, el mock fallará</span>
+        ...</code></pre>
+        </div>
+
+        <h2>Nivel 1 — Async: `AsyncMock` para `await`</h2>
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — mockear una coroutine</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> AsyncMock
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">test_async_mock</span>():
+    client = AsyncMock()
+    client.get.return_value = {<span class="prop">"ok"</span>: <span class="kw">True</span>}
+
+    res = <span class="kw">await</span> client.get(<span class="str">"/ping"</span>)
+
+    <span class="kw">assert</span> res[<span class="prop">"ok"</span>] <span class="kw">is</span> <span class="kw">True</span>
+    client.get.assert_awaited_once()</code></pre>
+        </div>
+
+        <h2>Nivel 2 — pytest: `monkeypatch` (env vars y atributos)</h2>
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — parchear env var</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">def</span> <span class="fn">test_env</span>(monkeypatch):
+    monkeypatch.setenv(<span class="str">"API_KEY"</span>, <span class="str">"test-key"</span>)
+    <span class="cmt"># tu código lee os.environ["API_KEY"]</span>
+    ...</code></pre>
+        </div>
+
+        <h2>Nivel 2 — pytest-mock: `mocker.patch` (el patch “limpio”)</h2>
+        <p>La ventaja didáctica de <code>mocker</code> es que el patch se revierte automáticamente al finalizar el test.</p>
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest-mock — patch sin `with`</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">def</span> <span class="fn">test_with_pytest_mock</span>(mocker):
+    send = mocker.patch(<span class="str">"app.service.send_email"</span>, autospec=<span class="kw">True</span>)
+
+    <span class="kw">from</span> app.service <span class="kw">import</span> register_user
+    register_user(<span class="str">"a@b.com"</span>)
+
+    send.assert_called_once()</code></pre>
+        </div>
+
+        <h2>Nivel 2 — Mock de HTTP: `requests` vs `httpx`</h2>
+        <p>Esto aparece mucho en FastAPI porque es habitual usar <code>httpx</code> para llamar a otros servicios.</p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>`requests`</h5>
+                <ul>
+                    <li><code>responses</code> es el clásico</li>
+                    <li>muy usado en proyectos legacy</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>`httpx`</h5>
+                <ul>
+                    <li><code>respx</code> o <code>httpx.MockTransport</code></li>
+                    <li>ideal para FastAPI + async</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — `httpx.MockTransport` (sin dependencias extra)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+
+<span class="kw">def</span> <span class="fn">test_httpx_mocktransport</span>():
+    <span class="kw">def</span> <span class="fn">handler</span>(request: httpx.Request) -&gt; httpx.Response:
+        <span class="kw">if</span> request.url.path == <span class="str">"/users/1"</span>:
+            <span class="kw">return</span> httpx.Response(<span class="num">200</span>, json={<span class="prop">"id"</span>: <span class="num">1</span>, <span class="prop">"name"</span>: <span class="str">"Ada"</span>})
+        <span class="kw">return</span> httpx.Response(<span class="num">404</span>, json={<span class="prop">"detail"</span>: <span class="str">"not found"</span>})
+
+    transport = httpx.MockTransport(handler)
+    client = httpx.Client(base_url=<span class="str">"https://example"</span>, transport=transport)
+
+    res = client.get(<span class="str">"/users/1"</span>)
+    <span class="kw">assert</span> res.status_code == <span class="num">200</span>
+    <span class="kw">assert</span> res.json()[<span class="prop">"name"</span>] == <span class="str">"Ada"</span></code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Idea:</strong> MockTransport es “mocking por diseño”: inyectas el transporte.
+                No parcheas globales.
+            </div>
+        </div>
+
+        <h2>Nivel 2 — `respx`: mock de rutas HTTP con asserts</h2>
+        <p>Cuando quieres describir “qué endpoints externos se llaman” con claridad, <code>respx</code> queda muy didáctico.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + respx — route mockeada + assert</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+<span class="kw">import</span> respx
+
+<span class="kw">def</span> <span class="fn">fetch_user</span>(client: httpx.Client, user_id: <span class="type">str</span>) -&gt; <span class="type">dict</span>:
+    <span class="kw">return</span> client.get(<span class="str">f"https://api.example.com/users/{user_id}"</span>).json()
+
+<span class="kw">@respx.mock</span>
+<span class="kw">def</span> <span class="fn">test_respx</span>():
+    route = respx.get(<span class="str">"https://api.example.com/users/1"</span>).mock(
+        return_value=httpx.Response(<span class="num">200</span>, json={<span class="prop">"id"</span>: <span class="num">1</span>, <span class="prop">"name"</span>: <span class="str">"Ada"</span>})
+    )
+
+    client = httpx.Client()
+    data = fetch_user(client, <span class="str">"1"</span>)
+
+    <span class="kw">assert</span> data[<span class="prop">"name"</span>] == <span class="str">"Ada"</span>
+    <span class="kw">assert</span> route.called  <span class="cmt"># se llamó al endpoint esperado</span></code></pre>
+        </div>
+
+        <h2>Nivel 2 — `freezegun`: congelar tiempo para tests deterministas</h2>
+        <p>Si generas tokens, calculas expiraciones o comparas fechas, congelar el tiempo es la solución limpia.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + freezegun — expiry sin flaky tests</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> datetime <span class="kw">import</span> datetime, timedelta
+<span class="kw">from</span> freezegun <span class="kw">import</span> freeze_time
+
+<span class="kw">def</span> <span class="fn">expires_at</span>(minutes: <span class="type">int</span>) -&gt; datetime:
+    <span class="kw">return</span> datetime.utcnow() + timedelta(minutes=minutes)
+
+<span class="kw">@freeze_time</span>(<span class="str">"2026-03-26 10:00:00"</span>)
+<span class="kw">def</span> <span class="fn">test_expiry</span>():
+    dt = expires_at(<span class="num">15</span>)
+    <span class="kw">assert</span> dt.isoformat().startswith(<span class="str">"2026-03-26T10:15:00"</span>)</code></pre>
+        </div>
+
+        <h2>Nivel 2 — Mocks específicos de tecnología (opcional pero muy útil)</h2>
+        <ul>
+            <li><strong>AWS:</strong> <code>moto</code> (S3, DynamoDB…)</li>
+            <li><strong>Redis:</strong> <code>fakeredis</code> (API compatible en memoria)</li>
+            <li><strong>MongoDB:</strong> <code>mongomock</code> (colecciones en memoria)</li>
+            <li><strong>Time:</strong> <code>freezegun</code></li>
+            <li><strong>Replays de HTTP:</strong> <code>vcrpy</code> (graba/responde)</li>
+        </ul>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Importante:</strong> estas librerías ayudan, pero no sustituyen integration tests reales.
+                Úsalas para unit/contract tests, no como “la verdad” del sistema.
+            </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="fastapi.html" class="btn btn-primary">→ Siguiente: FastAPI</a>
+            <a href="arquitectura.html" class="btn btn-outline">← Arquitectura</a>
+        </div>
+
+    </div>
+
+    <footer class="footer"><div class="footer-bottom"><p>Librerías — Python Mocking Bootcamp</p></div></footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block').querySelector('pre');
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura — Python Mocking Bootcamp</title>
+    <meta name="description" content="Diseña código mockeable: inyección de dependencias, límites de IO, repositorios, adapters y test pyramid.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html">Conceptos</a></li>
+                <li><a href="arquitectura.html" class="active">Arquitectura</a></li>
+                <li><a href="librerias.html">Librerías</a></li>
+                <li><a href="fastapi.html">FastAPI</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bases-datos.html">Bases de Datos</a></li>
+                <li><a href="fuentes.html">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>Arquitectura</span>
+        </div>
+    </div>
+
+    <div class="page-hero">
+        <h1>Arquitectura <span class="gradient-text">mockeable</span></h1>
+        <p>La mejor técnica de mocking es: diseñar para que mockear sea trivial.</p>
+    </div>
+
+    <div class="content">
+
+        <h2>Nivel 0 — La idea clave: separa lógica de IO</h2>
+        <p>Si tu función mezcla lógica con llamadas externas, te obliga a mockear “media vida”. Si separas bien, la
+            lógica se testea sin mocks y el IO se testea con mocks controlados.</p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Core (puro)</h5>
+                <ul>
+                    <li>Transformaciones</li>
+                    <li>Validaciones</li>
+                    <li>Reglas de negocio</li>
+                    <li>Sin red, sin DB</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Adapters (IO)</h5>
+                <ul>
+                    <li>HTTP clients</li>
+                    <li>Repositorios/DB</li>
+                    <li>Colas</li>
+                    <li>Filesystem</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Analogía:</strong> el core es la receta. Los adapters son la cocina (hornos, ingredientes, gas).
+                En el examen quieres evaluar si la receta es buena, no si el horno funcionaba.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — Inyección de dependencias (DI) en Python</h2>
+        <p>DI significa: <strong>no crees la dependencia dentro</strong> de la función. Recíbela como parámetro.
+            Así puedes pasar un fake/mock en tests.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Malo: crear el cliente dentro</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+
+<span class="kw">def</span> <span class="fn">get_user_profile</span>(user_id: <span class="type">str</span>) -&gt; <span class="type">dict</span>:
+    client = httpx.Client(base_url=<span class="str">"https://api.example.com"</span>)
+    <span class="kw">return</span> client.get(<span class="str">f"/users/{user_id}"</span>).json()</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Bien: recibir la dependencia</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">def</span> <span class="fn">get_user_profile</span>(client, user_id: <span class="type">str</span>) -&gt; <span class="type">dict</span>:
+    <span class="kw">return</span> client.get(<span class="str">f"/users/{user_id}"</span>).json()</code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Por qué esto te salva:</strong> en tests puedes pasar un client fake con un método <code>get</code>
+                que devuelve un objeto con <code>.json()</code> sin tocar red.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — Patrón Repositorio: mockear la DB sin pelearte con SQLAlchemy</h2>
+        <p>En vez de mockear <code>Session.execute()</code> (frágil), define un contrato simple (repositorio) y mockea eso.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Contrato y servicio de negocio</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> Protocol
+
+<span class="kw">class</span> <span class="type">UserRepo</span>(Protocol):
+    <span class="kw">def</span> <span class="fn">get_email</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">str</span> | <span class="type">None</span>: ...
+    <span class="kw">def</span> <span class="fn">mark_verified</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">None</span>: ...
+
+<span class="kw">class</span> <span class="type">EmailSender</span>(Protocol):
+    <span class="kw">def</span> <span class="fn">send</span>(self, to: <span class="type">str</span>, subject: <span class="type">str</span>, body: <span class="type">str</span>) -&gt; <span class="type">None</span>: ...
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="type">VerifyUser</span>:
+    repo: UserRepo
+    mailer: EmailSender
+
+    <span class="kw">def</span> <span class="fn">run</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">bool</span>:
+        email = self.repo.get_email(user_id)
+        <span class="kw">if</span> email <span class="kw">is</span> <span class="kw">None</span>:
+            <span class="kw">return</span> <span class="kw">False</span>
+
+        self.repo.mark_verified(user_id)
+        self.mailer.send(email, <span class="str">"Cuenta verificada"</span>, <span class="str">"OK"</span>)
+        <span class="kw">return</span> <span class="kw">True</span></code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — test sin DB real</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> Mock
+<span class="kw">from</span> app.usecases <span class="kw">import</span> VerifyUser
+
+<span class="kw">def</span> <span class="fn">test_verify_user_happy_path</span>():
+    repo = Mock()
+    repo.get_email.return_value = <span class="str">"a@b.com"</span>
+
+    mailer = Mock()
+
+    uc = VerifyUser(repo=repo, mailer=mailer)
+    ok = uc.run(<span class="str">"usr-1"</span>)
+
+    <span class="kw">assert</span> ok <span class="kw">is</span> <span class="kw">True</span>
+    repo.mark_verified.assert_called_once_with(<span class="str">"usr-1"</span>)
+    mailer.send.assert_called_once()</code></pre>
+        </div>
+
+        <h2>Nivel 2 — Pirámide de tests aplicada a mocking</h2>
+        <p>Regla práctica:</p>
+        <ul>
+            <li><strong>Unit tests</strong>: core puro, casi sin mocks (o mocks de 1 dependencia).</li>
+            <li><strong>Integration tests</strong>: DB real local (o SQLite), sin red externa.</li>
+            <li><strong>Contract / API tests</strong>: FastAPI con TestClient, mockeando servicios externos.</li>
+        </ul>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Si todo es unit con mocks:</strong> te falta integración. Los bugs reales suelen estar en el
+                pegamento: serialización, queries, auth, headers, timeouts.
+            </div>
+        </div>
+
+        <h2>Nivel 2 — Checklist para que un módulo sea “mockeable”</h2>
+        <ol>
+            <li>Dependencias externas pasan por parámetros o factories.</li>
+            <li>No hay singletons globales que se inicialicen al importar.</li>
+            <li>Los límites de IO están en módulos claramente identificables.</li>
+            <li>El core no importa librerías de IO (httpx, sqlalchemy, boto3) directamente.</li>
+            <li>Puedes ejecutar core sin entorno (sin env vars, sin red, sin DB).</li>
+        </ol>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="librerias.html" class="btn btn-primary">→ Siguiente: Librerías</a>
+            <a href="conceptos.html" class="btn btn-outline">← Conceptos</a>
+        </div>
+
+    </div>
+
+    <footer class="footer"><div class="footer-bottom"><p>Arquitectura — Python Mocking Bootcamp</p></div></footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block').querySelector('pre');
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

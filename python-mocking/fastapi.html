@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI — Python Mocking Bootcamp</title>
+    <meta name="description" content="Cómo mockear servicios y dependencias en FastAPI: dependency_overrides, TestClient, httpx AsyncClient, auth, background tasks.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html">Conceptos</a></li>
+                <li><a href="arquitectura.html">Arquitectura</a></li>
+                <li><a href="librerias.html">Librerías</a></li>
+                <li><a href="fastapi.html" class="active">FastAPI</a></li>
+                <li><a href="laboratorio.html">Laboratorio</a></li>
+                <li><a href="bases-datos.html">Bases de Datos</a></li>
+                <li><a href="fuentes.html">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb"><div class="breadcrumb-inner"><a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>FastAPI</span></div></div>
+
+    <div class="page-hero">
+        <h1>Mocking en <span class="gradient-text">FastAPI</span></h1>
+        <p>La técnica clave aquí es <strong>dependency overrides</strong>: mocks sin parchear globales.</p>
+    </div>
+
+    <div class="content">
+
+        <h2>Nivel 0 — Qué queremos lograr al testear una API</h2>
+        <p>En tests de FastAPI normalmente quieres:</p>
+        <ul>
+            <li>validar <strong>status codes</strong> y <strong>payload</strong></li>
+            <li>validar <strong>validación</strong> (Pydantic)</li>
+            <li>validar <strong>auth</strong> y permisos</li>
+            <li>evitar IO real: <strong>sin red</strong>, <strong>sin DB</strong>, <strong>sin servicios externos</strong></li>
+        </ul>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Analogía:</strong> FastAPI es la “capa de entrada” de tu app.
+                En tests, la puerta se prueba con cerradura real (validación), pero con actores falsos detrás (dependencias).
+            </div>
+        </div>
+
+        <h2>Nivel 1 — Patrón estándar: dependencias + override</h2>
+        <p>Patrón base de mocking en FastAPI. No hay magia: sólo DI.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — App con dependencia (repo)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="cmt"># app/main.py</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, Depends
+
+app = FastAPI()
+
+<span class="kw">class</span> <span class="type">UserRepo</span>:
+    <span class="kw">def</span> <span class="fn">get_user</span>(self, user_id: <span class="type">str</span>) -&gt; <span class="type">dict</span> | <span class="type">None</span>:
+        <span class="cmt"># DB real aquí (no entraremos en tests)</span>
+        ...
+
+<span class="kw">def</span> <span class="fn">get_repo</span>() -&gt; UserRepo:
+    <span class="kw">return</span> UserRepo()
+
+<span class="kw">@app.get</span>(<span class="str">"/users/{user_id}"</span>)
+<span class="kw">def</span> <span class="fn">read_user</span>(user_id: <span class="type">str</span>, repo: UserRepo = Depends(get_repo)):
+    user = repo.get_user(user_id)
+    <span class="kw">if</span> user <span class="kw">is</span> <span class="kw">None</span>:
+        <span class="kw">return</span> {<span class="prop">"detail"</span>: <span class="str">"not found"</span>}
+    <span class="kw">return</span> user</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — override de dependencia</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="cmt"># tests/test_api.py</span>
+<span class="kw">from</span> fastapi.testclient <span class="kw">import</span> TestClient
+<span class="kw">from</span> unittest.mock <span class="kw">import</span> Mock
+
+<span class="kw">from</span> app.main <span class="kw">import</span> app, get_repo
+
+<span class="kw">def</span> <span class="fn">test_read_user_ok</span>():
+    repo = Mock()
+    repo.get_user.return_value = {<span class="prop">"id"</span>: <span class="str">"1"</span>, <span class="prop">"name"</span>: <span class="str">"Ada"</span>}
+
+    <span class="kw">def</span> <span class="fn">override_repo</span>():
+        <span class="kw">return</span> repo
+
+    app.dependency_overrides[get_repo] = override_repo
+
+    client = TestClient(app)
+    res = client.get(<span class="str">"/users/1"</span>)
+
+    <span class="kw">assert</span> res.status_code == <span class="num">200</span>
+    <span class="kw">assert</span> res.json()[<span class="prop">"name"</span>] == <span class="str">"Ada"</span>
+    repo.get_user.assert_called_once_with(<span class="str">"1"</span>)
+
+    <span class="cmt"># limpieza (importante si hay más tests)</span>
+    app.dependency_overrides.clear()</code></pre>
+        </div>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Muy importante:</strong> siempre limpia <code>dependency_overrides</code>.
+                Si no, un test contamina a los siguientes.
+            </div>
+        </div>
+
+        <h2>Nivel 1 — Mock de auth: override del “current user”</h2>
+        <p>En FastAPI, auth suele estar en una dependencia tipo <code>get_current_user</code>. Mockear eso en tests
+            es exactamente lo mismo: override.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — dependencia de auth</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> fastapi <span class="kw">import</span> Depends, HTTPException, status
+
+<span class="kw">def</span> <span class="fn">get_current_user</span>():
+    <span class="cmt"># aquí validarías JWT / sesión</span>
+    <span class="kw">raise</span> HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+<span class="kw">@app.get</span>(<span class="str">"/me"</span>)
+<span class="kw">def</span> <span class="fn">me</span>(user = Depends(get_current_user)):
+    <span class="kw">return</span> user</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — override para simular usuario</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> fastapi.testclient <span class="kw">import</span> TestClient
+<span class="kw">from</span> app.main <span class="kw">import</span> app, get_current_user
+
+<span class="kw">def</span> <span class="fn">test_me_authenticated</span>():
+    app.dependency_overrides[get_current_user] = <span class="kw">lambda</span>: {<span class="prop">"id"</span>: <span class="str">"u1"</span>, <span class="prop">"role"</span>: <span class="str">"admin"</span>}
+
+    client = TestClient(app)
+    res = client.get(<span class="str">"/me"</span>)
+
+    <span class="kw">assert</span> res.status_code == <span class="num">200</span>
+    <span class="kw">assert</span> res.json()[<span class="prop">"role"</span>] == <span class="str">"admin"</span>
+
+    app.dependency_overrides.clear()</code></pre>
+        </div>
+
+        <h2>Nivel 2 — FastAPI + async: usar `httpx.AsyncClient` con ASGITransport</h2>
+        <p>Si tu app tiene endpoints async y quieres tests async, este patrón es muy estable.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — test async de FastAPI sin servidor real</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> pytest
+<span class="kw">import</span> httpx
+
+<span class="kw">from</span> app.main <span class="kw">import</span> app
+
+<span class="kw">@pytest.mark.asyncio</span>
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">test_async_endpoint</span>():
+    transport = httpx.ASGITransport(app=app)
+    <span class="kw">async</span> <span class="kw">with</span> httpx.AsyncClient(transport=transport, base_url=<span class="str">"http://test"</span>) <span class="kw">as</span> client:
+        res = <span class="kw">await</span> client.get(<span class="str">"/health"</span>)
+        <span class="kw">assert</span> res.status_code == <span class="num">200</span></code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Clave:</strong> no levantas un servidor.
+                El transporte ASGI ejecuta tu app en memoria.
+            </div>
+        </div>
+
+        <h2>Nivel 2 — Mockear un servicio externo llamado desde el endpoint</h2>
+        <p>Hay dos enfoques (ambos válidos). Empieza por el que requiere menos parches: inyectar
+            cliente o transporte.</p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Enfoque A (preferido)</h5>
+                <ul>
+                    <li>cliente HTTP como dependencia</li>
+                    <li>override en tests</li>
+                    <li>sin patch global</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Enfoque B (también vale)</h5>
+                <ul>
+                    <li>patch del módulo (unittest.mock)</li>
+                    <li>más frágil con imports</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — servicio externo como dependencia</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+<span class="kw">from</span> fastapi <span class="kw">import</span> Depends
+
+<span class="kw">def</span> <span class="fn">get_http_client</span>() -&gt; httpx.Client:
+    <span class="kw">return</span> httpx.Client(base_url=<span class="str">"https://billing"</span>)
+
+<span class="kw">@app.post</span>(<span class="str">"/charge"</span>)
+<span class="kw">def</span> <span class="fn">charge</span>(payload: <span class="type">dict</span>, client: httpx.Client = Depends(get_http_client)):
+    res = client.post(<span class="str">"/charge"</span>, json=payload)
+    <span class="kw">return</span> {<span class="prop">"ok"</span>: res.status_code == <span class="num">200</span>}</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — override con MockTransport</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> fastapi.testclient <span class="kw">import</span> TestClient
+<span class="kw">import</span> httpx
+
+<span class="kw">from</span> app.main <span class="kw">import</span> app, get_http_client
+
+<span class="kw">def</span> <span class="fn">test_charge_ok</span>():
+    <span class="kw">def</span> <span class="fn">handler</span>(request: httpx.Request) -&gt; httpx.Response:
+        <span class="kw">return</span> httpx.Response(<span class="num">200</span>, json={<span class="prop">"id"</span>: <span class="str">"ch_1"</span>})
+
+    transport = httpx.MockTransport(handler)
+
+    <span class="kw">def</span> <span class="fn">override_client</span>():
+        <span class="kw">return</span> httpx.Client(base_url=<span class="str">"https://billing"</span>, transport=transport)
+
+    app.dependency_overrides[get_http_client] = override_client
+
+    client = TestClient(app)
+    res = client.post(<span class="str">"/charge"</span>, json={<span class="prop">"amount"</span>: <span class="num">10</span>})
+
+    <span class="kw">assert</span> res.status_code == <span class="num">200</span>
+    <span class="kw">assert</span> res.json()[<span class="prop">"ok"</span>] <span class="kw">is</span> <span class="kw">True</span>
+
+    app.dependency_overrides.clear()</code></pre>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-text">
+                <strong>Por qué este ejemplo es bueno:</strong> se ve DI (override) + un mock “por diseño”
+                (transport). No hay patching de imports.
+            </div>
+        </div>
+
+        <h2>Nivel 2 — Alternativa: `respx` para interceptar `httpx`</h2>
+        <p>Si prefieres no tocar <code>dependency_overrides</code>, puedes interceptar las llamadas HTTP con <code>respx</code>.
+            Es útil cuando el cliente HTTP se crea dentro de la dependencia y quieres un mock declarativo por rutas.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + respx — mock por URL (sin override)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+<span class="kw">import</span> respx
+<span class="kw">from</span> fastapi.testclient <span class="kw">import</span> TestClient
+
+<span class="kw">from</span> app.main <span class="kw">import</span> app
+
+<span class="kw">@respx.mock</span>
+<span class="kw">def</span> <span class="fn">test_charge_ok_with_respx</span>():
+    <span class="cmt"># Intercepta la llamada externa a billing</span>
+    route = respx.post(<span class="str">"https://billing/charge"</span>).mock(
+        return_value=httpx.Response(<span class="num">200</span>, json={<span class="prop">"id"</span>: <span class="str">"ch_1"</span>})
+    )
+
+    client = TestClient(app)
+    res = client.post(<span class="str">"/charge"</span>, json={<span class="prop">"amount"</span>: <span class="num">10</span>})
+
+    <span class="kw">assert</span> res.status_code == <span class="num">200</span>
+    <span class="kw">assert</span> route.called</code></pre>
+        </div>
+
+        <h2>Nivel 2 — BackgroundTasks: testear sin ejecutar tareas reales</h2>
+        <p>Si tu endpoint encola tareas (emails, webs hooks), puedes inyectar el “sender” y mockearlo igual.
+            Si es un <code>BackgroundTasks.add_task</code>, normalmente validas que se llamó (spy) en unit tests del handler.
+        </p>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Regla práctica:</strong> si la tarea tiene lógica propia, la testéas por separado.
+                El endpoint sólo debería comprobar que la agenda.
+            </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="bases-datos.html" class="btn btn-primary">→ Siguiente: Bases de Datos</a>
+            <a href="librerias.html" class="btn btn-outline">← Librerías</a>
+        </div>
+
+    </div>
+
+    <footer class="footer"><div class="footer-bottom"><p>FastAPI — Python Mocking Bootcamp</p></div></footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block').querySelector('pre');
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado'; btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

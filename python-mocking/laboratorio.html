@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio — FastAPI + Mock de Servicio</title>
+    <meta name="description"
+        content="Laboratorio paso a paso: mockear un servicio externo en FastAPI sin tocar red, usando dependency_overrides y httpx MockTransport.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-text">Python Mocking Bootcamp</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="conceptos.html">Conceptos</a></li>
+                <li><a href="arquitectura.html">Arquitectura</a></li>
+                <li><a href="librerias.html">Librerías</a></li>
+                <li><a href="fastapi.html">FastAPI</a></li>
+                <li><a href="laboratorio.html" class="active">Laboratorio</a></li>
+                <li><a href="bases-datos.html">Bases de Datos</a></li>
+                <li><a href="fuentes.html">Fuentes</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <div class="breadcrumb">
+        <div class="breadcrumb-inner">
+            <a href="index.html">Inicio</a><span class="breadcrumb-sep">›</span><span>Laboratorio</span>
+        </div>
+    </div>
+
+    <div class="page-hero">
+        <h1>Laboratorio: <span class="gradient-text">FastAPI</span> + mock de servicio</h1>
+        <p>Práctica guiada: construir un endpoint que llama a un servicio externo y testearlo sin red.</p>
+    </div>
+
+    <div class="content">
+
+        <h2>Objetivo</h2>
+        <p>Construir un endpoint <code>GET /rates/{base}</code> que llama a un servicio externo de tipos de cambio y devuelve
+            un JSON normalizado. En tests, se simula la respuesta del servicio externo sin abrir sockets.</p>
+
+        <div class="info-box info">
+            <div class="info-box-text">
+                <strong>Regla del laboratorio:</strong> la app no crea el cliente HTTP dentro del handler.
+                El handler recibe una dependencia (DI) que se puede sobreescribir en tests.
+            </div>
+        </div>
+
+        <h2>Paso 0 — Estructura mínima</h2>
+        <p>Estructura sugerida (adáptala al proyecto real):</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">text — estructura</span><button class="copy-btn"
+                    onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>app/
+  main.py
+  deps.py
+  external_fx.py
+  routes.py
+tests/
+  test_rates.py</code></pre>
+        </div>
+
+        <h2>Paso 1 — Dependencia inyectable (cliente HTTP)</h2>
+        <p>En producción, se crea el cliente real. En tests, se sustituye por otro con transporte simulado.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — app/deps.py</span><button class="copy-btn"
+                    onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+
+<span class="kw">def</span> <span class="fn">get_fx_client</span>() -&gt; httpx.AsyncClient:
+    <span class="cmt"># En un proyecto real: cerrar el client con lifespan (startup/shutdown).</span>
+    <span class="kw">return</span> httpx.AsyncClient(base_url=<span class="str">"https://fx.example.com"</span>, timeout=<span class="num">5.0</span>)</code></pre>
+        </div>
+
+        <h2>Paso 2 — Adapter que usa el cliente</h2>
+        <p>Este módulo es el límite de IO: aquí vive la llamada externa. El resto del código sólo ve datos.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — app/external_fx.py</span><button class="copy-btn"
+                    onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+
+<span class="kw">async def</span> <span class="fn">fetch_rates</span>(client: httpx.AsyncClient, base: <span class="type">str</span>) -&gt; <span class="type">dict</span>:
+    resp = <span class="kw">await</span> client.get(<span class="str">"/latest"</span>, params={<span class="str">"base"</span>: base})
+    resp.raise_for_status()
+    data = resp.json()
+
+    <span class="cmt"># Normalización mínima para que el resto de la app no dependa del proveedor.</span>
+    <span class="kw">return</span> {
+        <span class="str">"base"</span>: data.get(<span class="str">"base"</span>, base),
+        <span class="str">"rates"</span>: data.get(<span class="str">"rates"</span>, {}),
+    }</code></pre>
+        </div>
+
+        <h2>Paso 3 — Endpoint FastAPI (Depends)</h2>
+        <p>El handler pide el cliente a través de <code>Depends</code>. Así se puede sustituir en tests con
+            <code>dependency_overrides</code>.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — app/routes.py</span><button class="copy-btn"
+                    onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> fastapi <span class="kw">import</span> APIRouter, Depends
+<span class="kw">import</span> httpx
+
+<span class="kw">from</span> .deps <span class="kw">import</span> get_fx_client
+<span class="kw">from</span> .external_fx <span class="kw">import</span> fetch_rates
+
+router = APIRouter()
+
+<span class="kw">@router.get</span>(<span class="str">"/rates/{base}"</span>)
+<span class="kw">async def</span> <span class="fn">rates</span>(base: <span class="type">str</span>, client: httpx.AsyncClient = Depends(get_fx_client)):
+    <span class="kw">return</span> <span class="kw">await</span> fetch_rates(client, base=base)</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — app/main.py</span><button class="copy-btn"
+                    onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI
+
+<span class="kw">from</span> .routes <span class="kw">import</span> router
+
+app = FastAPI()
+app.include_router(router)</code></pre>
+        </div>
+
+        <h2>Paso 4 — Test sin red (MockTransport + override)</h2>
+        <p>Se crea un <code>httpx.MockTransport</code> que responde como lo haría el servicio externo. Luego se inyecta un
+            <code>httpx.AsyncClient</code> de test en la dependencia <code>get_fx_client</code>.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python + pytest — tests/test_rates.py</span><button
+                    class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="kw">import</span> httpx
+<span class="kw">import</span> pytest
+
+<span class="kw">from</span> app.main <span class="kw">import</span> app
+<span class="kw">from</span> app.deps <span class="kw">import</span> get_fx_client
+
+
+<span class="kw">def</span> <span class="fn">mock_fx_transport</span>() -&gt; httpx.MockTransport:
+    <span class="kw">def</span> <span class="fn">handler</span>(request: httpx.Request) -&gt; httpx.Response:
+        <span class="kw">assert</span> request.url.path == <span class="str">"/latest"</span>
+        <span class="kw">assert</span> request.url.params.get(<span class="str">"base"</span>) == <span class="str">"EUR"</span>
+        <span class="kw">return</span> httpx.Response(<span class="num">200</span>, json={<span class="str">"base"</span>: <span class="str">"EUR"</span>, <span class="str">"rates"</span>: {<span class="str">"USD"</span>: <span class="num">1.1</span>}})
+
+    <span class="kw">return</span> httpx.MockTransport(handler)
+
+
+<span class="kw">@pytest.mark.asyncio</span>
+<span class="kw">async def</span> <span class="fn">test_rates_uses_mocked_external_service</span>():
+    transport = mock_fx_transport()
+    fx_client = httpx.AsyncClient(transport=transport, base_url=<span class="str">"https://fx.example.com"</span>)
+
+    <span class="kw">def</span> <span class="fn">override_fx_client</span>():
+        <span class="kw">return</span> fx_client
+
+    app.dependency_overrides[get_fx_client] = override_fx_client
+
+    <span class="kw">try</span>:
+        asgi = httpx.ASGITransport(app=app)
+        <span class="kw">async with</span> httpx.AsyncClient(transport=asgi, base_url=<span class="str">"http://test"</span>) <span class="kw">as</span> ac:
+            resp = <span class="kw">await</span> ac.get(<span class="str">"/rates/EUR"</span>)
+
+        <span class="kw">assert</span> resp.status_code == <span class="num">200</span>
+        <span class="kw">assert</span> resp.json() == {<span class="str">"base"</span>: <span class="str">"EUR"</span>, <span class="str">"rates"</span>: {<span class="str">"USD"</span>: <span class="num">1.1</span>}}
+    <span class="kw">finally</span>:
+        app.dependency_overrides.clear()
+        <span class="kw">await</span> fx_client.aclose()</code></pre>
+        </div>
+
+        <div class="info-box warning">
+            <div class="info-box-text">
+                <strong>Punto crítico:</strong> el <code>base_url</code> del <code>fx_client</code> de test debe ser el mismo
+                que espera el adapter. Si no coincide, el path puede no resolver como esperas.
+            </div>
+        </div>
+
+        <h2>Paso 5 — Qué se ha validado</h2>
+        <ul>
+            <li>El endpoint usa la dependencia (no crea un client interno).</li>
+            <li>La llamada externa sale por un transporte simulado (no hay red real).</li>
+            <li>El handler valida forma de request (path + query params) y devuelve JSON esperado.</li>
+        </ul>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:2rem">
+            <a href="fastapi.html" class="btn btn-outline">← Volver: FastAPI</a>
+            <a href="bases-datos.html" class="btn btn-primary">→ Siguiente: Bases de Datos</a>
+        </div>
+
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>Laboratorio — Python Mocking Bootcamp</p>
+        </div>
+    </footer>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 50); });
+        document.getElementById('navToggle').addEventListener('click', () => { document.querySelector('.nav-links').classList.toggle('open'); });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            if (btn.textContent.includes('Copiar')) btn.textContent = 'Copiar';
+        });
+
+        function copyCode(btn) {
+            const pre = btn.closest('.code-block')?.querySelector('pre');
+            if (!pre) return;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                btn.textContent = 'Copiado';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copiar';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+
+</body>
+
+</html>
