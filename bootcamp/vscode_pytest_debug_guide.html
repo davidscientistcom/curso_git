@@ -1,0 +1,316 @@
+
+<style>
+:root { --step-active: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+
+.container { padding: 1.5rem 0; max-width: 720px; }
+
+.progress-bar {
+  display: flex; gap: 6px; margin-bottom: 2rem; flex-wrap: wrap;
+}
+.progress-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: var(--color-text-secondary);
+  cursor: pointer; transition: all 0.15s;
+}
+.progress-dot.active {
+  background: #185FA5; border-color: #185FA5; color: white;
+}
+.progress-dot.done {
+  background: #0F6E56; border-color: #0F6E56; color: white;
+}
+
+.step-card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  display: none;
+}
+.step-card.active { display: block; }
+
+.step-header {
+  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 1rem;
+}
+.step-badge {
+  background: #E6F1FB; color: #185FA5;
+  font-size: 11px; font-weight: 500;
+  padding: 4px 10px; border-radius: 99px;
+  white-space: nowrap; margin-top: 2px;
+}
+.step-title {
+  font-size: 17px; font-weight: 500;
+  color: var(--color-text-primary); line-height: 1.4;
+}
+.step-desc {
+  font-size: 14px; color: var(--color-text-secondary);
+  line-height: 1.7; margin-bottom: 1.25rem;
+}
+
+.code-block {
+  background: var(--color-background-tertiary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.note {
+  background: var(--color-background-info);
+  border-left: 3px solid #185FA5;
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.note strong { color: var(--color-text-info); font-weight: 500; }
+
+.warn {
+  background: #FAEEDA;
+  border-left: 3px solid #BA7517;
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  color: #633806;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.nav-row {
+  display: flex; gap: 8px; margin-top: 1.5rem; justify-content: space-between;
+}
+.btn {
+  padding: 8px 18px; border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  background: transparent; color: var(--color-text-primary);
+  font-size: 14px; cursor: pointer;
+  font-family: var(--font-sans);
+}
+.btn:hover { background: var(--color-background-secondary); }
+.btn-primary {
+  background: #185FA5; color: white; border-color: #185FA5;
+}
+.btn-primary:hover { background: #0C447C; border-color: #0C447C; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+
+.file-label {
+  font-size: 12px; font-weight: 500; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+}
+.kbd {
+  display: inline-block;
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-primary);
+}
+
+.checklist { list-style: none; padding: 0; margin-bottom: 1rem; }
+.checklist li {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 14px; color: var(--color-text-secondary);
+  line-height: 1.6; padding: 4px 0;
+}
+.check-icon {
+  width: 16px; height: 16px; margin-top: 2px;
+  border-radius: 50%; background: #EAF3DE;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.check-icon::after {
+  content: ''; display: block;
+  width: 5px; height: 9px;
+  border-right: 1.5px solid #3B6D11;
+  border-bottom: 1.5px solid #3B6D11;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+</style>
+
+<div class="container">
+  <div class="progress-bar" id="dots"></div>
+
+  <div class="step-card active" id="step-0">
+    <div class="step-header">
+      <span class="step-badge">Paso 1 de 6</span>
+      <span class="step-title">Instalar la extensión de Python en VS Code</span>
+    </div>
+    <p class="step-desc">Antes de cualquier cosa, necesitas la extensión oficial de Microsoft. Esta extensión es la que conecta VS Code con el intérprete de Python y habilita el depurador.</p>
+    <p class="step-desc">Abre VS Code y ve al panel de extensiones con <span class="kbd">Ctrl+Shift+X</span>. Busca <strong>Python</strong> y asegúrate de instalar la de Microsoft (el autor debe ser "Microsoft").</p>
+    <div class="note"><strong>Nota:</strong> Con la extensión Python también se instala automáticamente la extensión <em>Pylance</em> para autocompletado y análisis de tipos. Ambas trabajan juntas.</div>
+    <ul class="checklist">
+      <li><span class="check-icon"></span>Extensión "Python" de Microsoft instalada</li>
+      <li><span class="check-icon"></span>VS Code reconoce el intérprete Python del proyecto</li>
+    </ul>
+    <div class="nav-row">
+      <button class="btn" disabled>Anterior</button>
+      <button class="btn btn-primary" onclick="go(1)">Siguiente →</button>
+    </div>
+  </div>
+
+  <div class="step-card" id="step-1">
+    <div class="step-header">
+      <span class="step-badge">Paso 2 de 6</span>
+      <span class="step-title">Estructura del proyecto y entorno virtual</span>
+    </div>
+    <p class="step-desc">VS Code necesita saber qué intérprete usar. Lo más limpio es tener un entorno virtual dentro del proyecto. Si ya tienes uno, selecciónalo con <span class="kbd">Ctrl+Shift+P</span> → <em>Python: Select Interpreter</em>.</p>
+    <p class="step-desc">Una estructura típica que funciona bien con pytest sería:</p>
+    <div class="code-block">mi_proyecto/
+├── src/
+│   └── calculadora.py       # tu código fuente
+├── tests/
+│   └── test_calculadora.py  # tus tests pytest
+├── .venv/                   # entorno virtual
+└── pyproject.toml           # o requirements.txt</div>
+    <div class="note"><strong>Importante:</strong> pytest busca tests en ficheros que empiecen por <code>test_</code> o terminen en <code>_test.py</code>. Mantén esta convención o el depurador no los detectará.</div>
+    <p class="step-desc">Si no tienes entorno virtual aún, créalo desde el terminal integrado:</p>
+    <div class="code-block">python -m venv .venv
+source .venv/bin/activate
+pip install pytest</div>
+    <div class="nav-row">
+      <button class="btn" onclick="go(0)">← Anterior</button>
+      <button class="btn btn-primary" onclick="go(2)">Siguiente →</button>
+    </div>
+  </div>
+
+  <div class="step-card" id="step-2">
+    <div class="step-header">
+      <span class="step-badge">Paso 3 de 6</span>
+      <span class="step-title">Configurar pytest como framework de tests</span>
+    </div>
+    <p class="step-desc">VS Code necesita saber que usas pytest (no unittest, que es el predeterminado). Ve a <span class="kbd">Ctrl+Shift+P</span> → <em>Python: Configure Tests</em> y selecciona <strong>pytest</strong>. Elige la carpeta raíz del proyecto.</p>
+    <p class="step-desc">Esto crea automáticamente (o modifica) el fichero <code>.vscode/settings.json</code>:</p>
+    <div class="file-label">.vscode/settings.json</div>
+    <div class="code-block">{
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"        // carpeta donde están tus tests
+  ]
+}</div>
+    <div class="note"><strong>Tip:</strong> Si tus tests están en la raíz o en una subcarpeta diferente, cambia el valor de <code>pytestArgs</code> para que apunte a ella. Puedes añadir opciones de pytest aquí, como <code>"-v"</code> para verbose.</div>
+    <div class="nav-row">
+      <button class="btn" onclick="go(1)">← Anterior</button>
+      <button class="btn btn-primary" onclick="go(3)">Siguiente →</button>
+    </div>
+  </div>
+
+  <div class="step-card" id="step-3">
+    <div class="step-header">
+      <span class="step-badge">Paso 4 de 6</span>
+      <span class="step-title">Crear el fichero launch.json para el depurador</span>
+    </div>
+    <p class="step-desc">Este es el paso clave. El fichero <code>launch.json</code> le dice a VS Code cómo lanzar el depurador. Sin él, solo puedes ejecutar tests pero no pararlos en un breakpoint.</p>
+    <p class="step-desc">Ve a <span class="kbd">Ctrl+Shift+D</span> (panel Run and Debug) → <em>create a launch.json file</em> → selecciona <strong>Python Debugger</strong> → <strong>Python: Remote Attach</strong> o simplemente edita el fichero a mano:</p>
+    <div class="file-label">.vscode/launch.json</div>
+    <div class="code-block">{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Tests (pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",           // lanzamos pytest como módulo
+      "args": [
+        "tests/",                   // ruta a tus tests
+        "-v",                       // verbose: ves qué test se ejecuta
+        "--no-header",
+        "-rN"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true            // false si quieres entrar en librerías
+    }
+  ]
+}</div>
+    <div class="note"><strong>¿Por qué <code>"module": "pytest"</code> y no <code>"program"</code>?</strong> Con <code>module</code> usamos el pytest del entorno virtual activo, evitando problemas de path. Es la forma recomendada en Linux.</div>
+    <div class="nav-row">
+      <button class="btn" onclick="go(2)">← Anterior</button>
+      <button class="btn btn-primary" onclick="go(4)">Siguiente →</button>
+    </div>
+  </div>
+
+  <div class="step-card" id="step-4">
+    <div class="step-header">
+      <span class="step-badge">Paso 5 de 6</span>
+      <span class="step-title">Poner breakpoints y lanzar la depuración</span>
+    </div>
+    <p class="step-desc">Ahora lo interesante. Abre cualquier fichero de test o de código fuente y haz clic en el margen izquierdo junto al número de línea para poner un breakpoint (aparece un punto rojo).</p>
+    <p class="step-desc">Para lanzar el depurador tienes dos caminos:</p>
+    <ul class="checklist">
+      <li><span class="check-icon"></span><strong>Desde el panel Test Explorer</strong> (icono de matraz en la barra lateral): busca el test que quieres depurar, haz clic derecho → <em>Debug Test</em>. Solo ejecuta ese test.</li>
+      <li><span class="check-icon"></span><strong>Desde Run and Debug</strong> <span class="kbd">F5</span>: usa la configuración <code>launch.json</code> y ejecuta todos los tests con el depurador activo.</li>
+    </ul>
+    <div class="warn"><strong>Atención:</strong> Si usas <span class="kbd">Ctrl+F5</span> (Run Without Debugging) o el botón de play del Test Explorer normal, el depurador no se activa y los breakpoints se ignoran.</div>
+    <p class="step-desc">Una vez detenido en un breakpoint, puedes inspeccionar variables en el panel <em>Variables</em>, evaluar expresiones en <em>Watch</em>, y navegar con:</p>
+    <div class="code-block">F10  →  Step Over   (ejecuta la línea sin entrar en funciones)
+F11  →  Step Into   (entra dentro de la función llamada)
+F5   →  Continue    (continúa hasta el siguiente breakpoint)</div>
+    <div class="nav-row">
+      <button class="btn" onclick="go(3)">← Anterior</button>
+      <button class="btn btn-primary" onclick="go(5)">Siguiente →</button>
+    </div>
+  </div>
+
+  <div class="step-card" id="step-5">
+    <div class="step-header">
+      <span class="step-badge">Paso 6 de 6</span>
+      <span class="step-title">Depurar un test concreto o con parámetros</span>
+    </div>
+    <p class="step-desc">Cuando tienes muchos tests, relanzar todos es lento. Puedes configurar el <code>launch.json</code> para depurar solo un test específico, o usar el Test Explorer para ir directamente al que falla.</p>
+    <div class="file-label">Depurar solo un test por nombre</div>
+    <div class="code-block">"args": [
+  "tests/test_calculadora.py::test_suma",  // solo este test
+  "-v"
+]</div>
+    <div class="file-label">Depurar tests que coincidan con un patrón</div>
+    <div class="code-block">"args": [
+  "-k", "suma or resta",   // tests cuyo nombre contenga "suma" o "resta"
+  "-v"
+]</div>
+    <p class="step-desc">Para tests parametrizados con <code>@pytest.mark.parametrize</code>, el depurador se detendrá en el breakpoint en cada iteración del parámetro, lo que te permite ver exactamente qué valor está fallando.</p>
+    <div class="note"><strong>Tip final:</strong> Si <code>justMyCode: true</code> en el <code>launch.json</code> y quieres entrar dentro de una fixture o librería de terceros, cámbialo a <code>false</code>. Recuerda que con Hypothesis los tests se ejecutan muchas veces — pon el breakpoint dentro del cuerpo del test, no en la firma.</div>
+    <div class="nav-row">
+      <button class="btn" onclick="go(4)">← Anterior</button>
+      <button class="btn" onclick="sendPrompt('Tengo dudas sobre la configuración del depurador con pytest en VS Code')">¿Tienes dudas? ↗</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const total = 6;
+let current = 0;
+
+function renderDots() {
+  const d = document.getElementById('dots');
+  d.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot' + (i === current ? ' active' : i < current ? ' done' : '');
+    dot.textContent = i + 1;
+    dot.onclick = () => go(i);
+    d.appendChild(dot);
+  }
+}
+
+function go(n) {
+  document.getElementById('step-' + current).classList.remove('active');
+  current = n;
+  document.getElementById('step-' + current).classList.add('active');
+  renderDots();
+}
+
+renderDots();
+</script>
