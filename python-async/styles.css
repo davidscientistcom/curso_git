@@ -1,6 +1,32 @@
-@import url('../styles.css');
+/* ===========================
+   Apache Flink Bootcamp — Master Styles
+   =========================== */
 
-/* Bundle-specific styles follow. Core variables are provided by ../styles.css to ensure consistent branding across bundles. */
+:root {
+  --bg: #0a0f1e;
+  --bg2: #0d1526;
+  --bg3: #111827;
+  --surface: #141d2e;
+  --surface2: #1a2540;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --primary: #e8421a;
+  --primary-light: #ff6b47;
+  --secondary: #10b981;
+  --accent: #f59e0b;
+  --danger: #ef4444;
+  --cyan: #06b6d4;
+  --flink: #e8421a;
+  --flink-dark: #b33215;
+  --flink-orange: #ff8c42;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow: 0 4px 30px rgba(0,0,0,0.4);
+  --shadow-flink: 0 0 40px rgba(232,66,26,0.2);
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -644,3 +670,14 @@ td strong { color: var(--text); font-weight: 600; }
   color: var(--primary-light);
   border-bottom: none;
 }
+
+/* ===== PYTHON SYNTAX HIGHLIGHTING ===== */
+pre .kw   { color: #c084fc; }   /* keywords: def async await class import return if else for with */
+pre .str  { color: #4ade80; }   /* strings */
+pre .cmt  { color: #4b5563; }   /* comments */
+pre .fn   { color: #67e8f9; }   /* function names, builtins */
+pre .num  { color: #fb923c; }   /* numbers */
+pre .dec  { color: #f59e0b; }   /* decorators @pytest.mark */
+pre .type { color: #ff8c42; }   /* type hints, class names */
+pre .blt  { color: #fbbf24; }   /* builtins: True False None print len */
+pre .exc  { color: #f87171; }   /* exceptions */
