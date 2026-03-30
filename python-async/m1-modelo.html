@@ -34,6 +34,101 @@
     </header>
 
     <main class="content">
+            <!-- NUEVO: Explicación de procesos, hilos, tabla comparativa y GIL -->
+            <h2>¿Qué es un Proceso?</h2>
+            <p>Cuando ejecutas un programa Python (por ejemplo, <code>python mi_script.py</code>), el sistema operativo crea un <strong>PROCESO</strong>. Un proceso es una "caja" aislada que contiene:</p>
+            <ul>
+                <li>Su propio espacio de memoria (variables, objetos, datos)</li>
+                <li>Su propio contador de programa (qué línea está ejecutando)</li>
+                <li>Sus propios recursos (ficheros abiertos, conexiones de red)</li>
+            </ul>
+            <p>Los procesos son <strong>INDEPENDIENTES</strong> entre sí. Si un proceso falla o se corrompe, los demás procesos no se ven afectados. La comunicación entre procesos (IPC - Inter-Process Communication) es costosa porque hay que copiar datos entre "cajas" aisladas.</p>
+            <div class="info-box info">
+                <div class="info-box-icon">💡</div>
+                <div class="info-box-text">
+                    <strong>Ejemplo real:</strong> Cuando tienes Chrome abierto con 10 pestañas, cada pestaña es un proceso separado. Si una pestaña falla, las demás siguen funcionando.
+                </div>
+            </div>
+
+            <h2>¿Qué es un Hilo (Thread)?</h2>
+            <p>Dentro de un proceso puede haber múltiples <strong>HILOS</strong> (threads). Los hilos son "subunidades de ejecución" que viven <strong>DENTRO</strong> del mismo proceso. Características clave:</p>
+            <ul>
+                <li>COMPARTEN la memoria del proceso (pueden leer y escribir las mismas variables)</li>
+                <li>Son más ligeros que los procesos (creación más rápida, menos recursos)</li>
+                <li>La comunicación entre hilos es directa y barata (memoria compartida)</li>
+                <li><span style="color:var(--danger)">PELIGRO</span>: al compartir memoria, pueden "pisarse" mutuamente → race conditions</li>
+            </ul>
+            <div class="info-box warning">
+                <div class="info-box-icon">🍳</div>
+                <div class="info-box-text">
+                    <strong>Analogía:</strong> El proceso es una cocina. Los hilos son los cocineros dentro de esa cocina. Todos comparten los mismos ingredientes (memoria compartida). Si dos cocineros intentan usar la misma sartén a la vez sin coordinarse → ¡desastre! (race condition).
+                </div>
+            </div>
+
+            <h2>Proceso vs Hilo — Cuándo usar cada uno</h2>
+            <table style="width:100%;margin-bottom:2rem;border-collapse:collapse;border:1px solid var(--border2);">
+                <thead>
+                    <tr style="background:var(--surface2);color:var(--text2);">
+                        <th style="padding:0.5rem 1rem;border:1px solid var(--border2);">Característica</th>
+                        <th style="padding:0.5rem 1rem;border:1px solid var(--border2);">Proceso</th>
+                        <th style="padding:0.5rem 1rem;border:1px solid var(--border2);">Hilo (Thread)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Memoria</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Aislada (propia)</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Compartida con otros hilos</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Velocidad de creación</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Lento (~50ms)</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Rápido (~1ms)</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Comunicación</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Costosa (IPC, colas, pipes)</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Barata (memoria compartida)</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Fallo de uno</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">No afecta a otros procesos</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Puede tumbar todo el proceso</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">En Python</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Evita el GIL → CPU-bound</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Limitado por el GIL → I/O-bound</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Librería Python</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">multiprocessing</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">threading</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Cuándo usarlo</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Cálculo intensivo (ML, vídeo)</td>
+                        <td style="padding:0.5rem 1rem;border:1px solid var(--border2);">Esperas de I/O (APIs, archivos)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>El GIL — Por qué Python es diferente</h2>
+            <p>Python (CPython, la versión estándar) tiene una restricción llamada <strong>GIL</strong> (Global Interpreter Lock — Bloqueo Global del Intérprete).</p>
+            <p>El GIL es un mecanismo de seguridad que garantiza que, en cualquier momento, <strong>SOLO UN HILO</strong> puede ejecutar código Python a la vez, aunque tengas 8 núcleos de CPU disponibles.</p>
+            <p><strong>¿Por qué existe?</strong> Para proteger las estructuras internas del intérprete de Python de la corrupción por acceso concurrente. Es una decisión de diseño histórica (Python 1991) que facilitó mucho la implementación.</p>
+            <p><strong>¿Qué implica para nosotros?</strong></p>
+            <ul>
+                <li>Threading en Python <strong>NO</strong> paraleliza código que usa mucha CPU</li>
+                <li>Threading en Python <strong>SÍ</strong> es útil para operaciones de I/O (cuando un hilo espera una respuesta de red, el GIL se libera y otro hilo puede ejecutar)</li>
+                <li>Para paralelismo real de CPU → usar <code>multiprocessing</code> o <code>asyncio</code></li>
+            </ul>
+            <div class="info-box warning">
+                <div class="info-box-icon">🧩</div>
+                <div class="info-box-text">
+                    <strong>IMPORTANTE:</strong> Python 3.13 introduce el modo "free-threaded" (sin GIL) como experimento, pero aún no es el comportamiento por defecto.
+                </div>
+            </div>
         <h2>1. El Global Interpreter Lock (GIL)</h2>
         <p>Antes de hablar de asincronía, necesitamos entender a nuestro "amigo" y cuello de botella favorito: el <strong>GIL</strong>.</p>
         

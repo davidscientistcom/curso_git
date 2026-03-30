@@ -35,12 +35,11 @@
 
     <main class="content">
         <h2>1. El Riesgo de los Threads (Race Conditions)</h2>
-        <p>El problema con <code>threading</code> no es la concurrencia, son los estados compartidos mutables. <strong>El SO puede pausar tu hilo en CUALQUIER instrucción de máquina.</strong></p>
-
+        <p><strong>El verdadero problema de <code>threading</code> no es la concurrencia en sí, sino el acceso concurrente a <u>estados compartidos mutables</u>.</strong> Cuando varios hilos pueden leer y modificar la misma variable al mismo tiempo, aparecen los bugs más difíciles de detectar: <em>race conditions</em>.</p>
         <div class="info-box warning">
             <div class="info-box-icon">⚠️</div>
             <div class="info-box-text">
-                En Python, una operación aparentemente atómica como <code>contador += 1</code> son en realidad múltiples instrucciones de bytecode a bajo nivel (LOAD, ADD, STORE). El SO puede interrumpir justo en medio.
+                En Python, una operación aparentemente atómica como <code>contador += 1</code> son en realidad múltiples instrucciones de bytecode a bajo nivel (LOAD, ADD, STORE). <strong>El sistema operativo puede pausar tu hilo en cualquier momento, incluso entre esas instrucciones,</strong> permitiendo que otro hilo modifique el mismo estado y generando resultados inesperados.
             </div>
         </div>
 
@@ -58,28 +57,60 @@ class UnsafeCounter:
         self.value = 0
         
     def increment(self):
-        <span class="cmt"># Esto NO es seguro con threads, múltiples hilos intentarán leer y sumar a la vez</span>
-        self.value += 1
+        <span class="cmt"># Separar lectura y escritura para forzar la race condition</span>
+        current = self.value
+        import time; time.sleep(0.00001)  # Forzamos cambio de contexto aquí
+        self.value = current + 1
 
 <span class="cmt"># 2. EL TEST (TDD)</span>
 def test_unsafe_counter_race_condition():
     counter = UnsafeCounter()
     
-    <span class="cmt"># Función que cada hilo ejecutará 100,000 veces</span>
+    def worker():
+        for _ in range(50):
+            counter.increment()
+            
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+    
+    for t in threads: t.start()
+    for t in threads: t.join()
+        
+    total_esperado = 10 * 50  # = 500
+    print(f"Esperado: {total_esperado}")
+    print(f"Resultado real: {counter.value}")
+    print(f"Incrementos PERDIDOS: {total_esperado - counter.value}")
+    assert counter.value < total_esperado, (
+        f"RACE CONDITION DEMOSTRADA: esperábamos {total_esperado} "
+        f"pero obtuvimos {counter.value}. "
+        f"Se perdieron {total_esperado - counter.value} incrementos."
+    )
+
+<span class="cmt"># 3. LA IMPLEMENTACIÓN SEGURA</span>
+class SafeCounter:
+    def __init__(self):
+        self.value = 0
+        self._lock = threading.Lock() <span class="cmt"># Creamos un candado</span>
+        
+    def increment(self):
+        <span class="cmt"># Con 'with', el hilo coge la llave del candado. Al salir, la devuelve.</span>
+        with self._lock:
+            self.value += 1
+
+<span class="cmt"># 4. EL TEST VERDE (TDD)</span>
+def test_safe_counter():
+    counter = SafeCounter()
+    
     def worker():
         for _ in range(100_000):
             counter.increment()
             
-    <span class="cmt"># Creamos 10 hilos</span>
     threads = [threading.Thread(target=worker) for _ in range(10)]
-    
-    <span class="cmt"># Arrancamos los hilos y esperamos a que mueran (.join)</span>
     for t in threads: t.start()
     for t in threads: t.join()
         
-    <span class="cmt"># El total debería ser 1,000,000. Pero CASI SEGURO que no lo será. Fallará la aserción.</span>
-    <span class="cmt"># (En un test real, haríamos assert counter.value < 1_000_000 para forzar testear el fallo)</span>
-    print(f"Resultado final inseguro: {counter.value}")</code></pre>
+    <span class="cmt"># AHORA SÍ: SIEMPRE será 1,000,000 exacto.</span>
+    assert counter.value == 1_000_000
+    print(f"Resultado final SEGURO: {counter.value} ✅")</code></pre>
         </div>
 
         <h2>2. Arreglando el código con Locks</h2>

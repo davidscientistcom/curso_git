@@ -115,6 +115,77 @@ async def test_user_exists_mock():
             </div>
         </div>
 
+        <h2 style="margin-top:3rem;">4. Race Condition con hilos en Python</h2>
+        <div class="info-box warning">
+            <div class="info-box-icon">⚠️</div>
+            <div class="info-box-text">
+                <strong>¡Cuidado!</strong> En Python, la mayoría de ejemplos de "race condition" con hilos <em>no fallan</em> porque el GIL (Global Interpreter Lock) impide que dos hilos ejecuten bytecode a la vez. <br><br>
+                <strong>¿Por qué el ejemplo clásico <code>self.value += 1</code> NO falla?</strong><br>
+                La operación <code>self.value += 1</code> es tan rápida que el GIL no se libera entre el momento de leer y el de escribir el valor. Por eso, aunque lances 10 hilos, el resultado suele ser siempre correcto (no se ve la race condition).
+                <br><br>
+                <strong>¿Cómo forzar la race condition?</strong><br>
+                Hay que separar explícitamente el <em>leer</em> del <em>escribir</em> y meter un <code>time.sleep()</code> diminuto entre medias. Así el planificador de hilos puede "interrumpir" y otro hilo pisa el valor.
+            </div>
+        </div>
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Ejemplo de race condition real</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import threading
+import time
+
+# 1. LA IMPLEMENTACIÓN INSEGURA
+class UnsafeCounter:
+    def __init__(self):
+        self.value = 0
+        
+    def increment(self):
+        # EXPLICACIÓN DEL BUG:
+        # Esta operación parece una sola línea, pero son 3 pasos separados:
+        #   Paso 1 → Leer self.value y guardarlo en una variable temporal
+        #   Paso 2 → Sumar 1 a esa variable temporal  
+        #   Paso 3 → Escribir el resultado de vuelta en self.value
+        #
+        # Si entre el Paso 1 y el Paso 3 el sistema operativo "pausa" 
+        # este hilo y ejecuta otro, ese otro hilo leerá el valor VIEJO
+        # y ambos escribirán el mismo resultado → perdemos incrementos.
+        #
+        # Con time.sleep() forzamos ese "pause" para que sea siempre visible.
+        
+        current = self.value        # Paso 1: LEER
+        time.sleep(0.00001)         # Simulamos trabajo / forzamos context switch
+        self.value = current + 1    # Paso 3: ESCRIBIR (con valor ya desactualizado)
+
+# 2. EL TEST (TDD) — Este test DEBE fallar para demostrar la race condition
+def test_unsafe_counter_race_condition():
+    counter = UnsafeCounter()
+    
+    # Función que cada hilo ejecutará 50 veces (menos iteraciones por el sleep)
+    def worker():
+        for _ in range(50):
+            counter.increment()
+            
+    # Creamos 10 hilos
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+    
+    # Arrancamos los hilos y esperamos a que terminen (.join)
+    for t in threads: t.start()
+    for t in threads: t.join()
+    
+    total_esperado = 10 * 50  # = 500
+    
+    print(f"Esperado: {total_esperado}")
+    print(f"Resultado real: {counter.value}")
+    print(f"Incrementos PERDIDOS: {total_esperado - counter.value}")
+    
+    # Este assert FALLARÁ porque habrá race conditions.
+    # En un contexto de curso, esto es exactamente lo que queremos demostrar.
+    assert counter.value < total_esperado, (
+        f"RACE CONDITION DEMOSTRADA: esperábamos {total_esperado} "
+        f"pero obtuvimos {counter.value}. "
+        f"Se perdieron {total_esperado - counter.value} incrementos."
+    )
+</code></pre>
+        </div>
+
         <a href="m5-casos.html" class="btn btn-primary" style="margin-top:2rem;">Continuar a M5: Casos Reales TDD →</a>
     </main>
 

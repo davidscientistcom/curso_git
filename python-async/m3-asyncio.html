@@ -35,6 +35,13 @@
 
     <main class="content">
         <h2>1. El Bucle de Eventos (Event Loop) y Coroutines</h2>
+        <p>Hay dos formas de hacer multitarea y es importante entender la diferencia:</p>
+        <ul>
+            <li><strong>Preemptive multitasking (hilos/threads):</strong> El Sistema Operativo interrumpe tu código cuando quiere, sin preguntarte. Tú no controlas cuándo te pausan.</li>
+            <li><strong>Cooperative multitasking (asyncio):</strong> <u>TÚ</u> decides cuándo pausarte, escribiendo <code>await</code>. Si nunca escribes <code>await</code>, tu coroutine monopoliza el Event Loop para siempre y bloquea todo lo demás.</li>
+        </ul>
+        <p>El Event Loop es simplemente un bucle interno (<code>while True</code>) que va mirando qué coroutines están listas para continuar y les da el turno. Cuando una coroutine llega a un <code>await</code>, no se bloquea esperando: le dice al Event Loop "avísame cuando esto esté listo" y el Loop aprovecha para ejecutar otra coroutine.</p>
+
         <p>A diferencia de los hilos donde el Sistema Operativo te corta en cualquier momento (<em>preemptive multitasking</em>), en <code>asyncio</code> las funciones deciden cuándo pausarse voluntariamente y devolver el control al bucle central (<em>cooperative multitasking</em>).</p>
 
         <div class="info-box info">
@@ -66,6 +73,16 @@ if __name__ == "__main__":
     asyncio.run(main())</code></pre>
         </div>
 
+        <div class="info-box warning">
+            <div class="info-box-icon">⚠️</div>
+            <div class="info-box-text">
+                <strong>TRAMPA CLÁSICA: await en serie = código síncrono disfrazado</strong><br><br>
+                El código de arriba parece asíncrono pero tarda 2 segundos en total.<br>
+                ¿Por qué? Porque <code>await fetch_data(1)</code> pausa <code>main()</code> y espera a que termine completamente antes de ni siquiera empezar <code>fetch_data(2)</code>.<br><br>
+                Para concurrencia REAL necesitas <code>gather()</code> o <code>create_task()</code>. Lo veremos en el bloque siguiente.
+            </div>
+        </div>
+
         <h2>2. Ejecución Concurrente: Tasks y Gather</h2>
         <p>Hacer <code>await</code> secuencialmente derrota el propósito de asincronía. Para hacer cosas a la vez, necesitamos encolar las coroutines en el Event Loop como <strong>Tasks</strong> (Tareas).</p>
 
@@ -77,6 +94,50 @@ if __name__ == "__main__":
             <div class="concept-card green" style="cursor:default">
                 <h3>📦 asyncio.gather()</h3>
                 <p>El método rey. Le pasas N coroutines, las lanza todas concurrentemente y te devuelve una lista con los N resultados en el mismo orden original.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper" style="margin-bottom:2rem;">
+            <table>
+                <thead>
+                    <tr><th></th><th>asyncio.gather()</th><th>asyncio.create_task()</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Cuándo usarlo</strong></td>
+                        <td>Quieres esperar TODOS los resultados a la vez</td>
+                        <td>Quieres lanzar algo en background y seguir haciendo otras cosas</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Devuelve</strong></td>
+                        <td>Lista de resultados en el mismo orden en que los pasaste</td>
+                        <td>Un objeto Task al que puedes hacer await más tarde</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Analogía</strong></td>
+                        <td>Pedir varios platos y esperar que lleguen todos juntos</td>
+                        <td>Pedir un plato y mientras tanto hacer otra cosa en la mesa</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-icon">💡</div>
+            <div class="info-box-text">
+                <strong>Ejemplo de create_task():</strong><br>
+                <pre style="margin:0;"><code>async def main():
+    # Lanzamos la tarea en background SIN esperar
+    task = asyncio.create_task(fetch_data(1))
+    
+    # Seguimos haciendo otras cosas mientras fetch_data(1) corre
+    print("Haciendo otras cosas...")
+    await asyncio.sleep(0.5)
+    
+    # Ahora sí esperamos el resultado
+    resultado = await task
+    print(resultado)
+</code></pre>
             </div>
         </div>
 
@@ -143,20 +204,20 @@ async def main():
     await asyncio.gather(*tasks)</code></pre>
         </div>
 
-        <a href="m4-testing.html" class="btn btn-primary" style="margin-top:2rem;">Continuar a M4: Testing Async →</a>
-    </main>
-
-    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
-        &copy; 2026 LucentIA Research · Python Async TDD-First
-    </footer>
-    <script>
-        const nb = document.getElementById('navbar');
-        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
-        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
-        function copyCode(btn) {
-            const code = btn.closest('.code-block').querySelector('pre').innerText;
-            navigator.clipboard.writeText(code).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
-        }
-    </script>
-</body>
-</html>
+        <div class="info-box info">
+            <div class="info-box-icon">🔢</div>
+            <div class="info-box-text">
+                <strong>¿Qué ocurre con 10 tareas y Semaphore(3)? Veámoslo paso a paso:</strong><br>
+                <ul>
+                    <li>Turno 1 → Tareas 0, 1, 2 entran y corren juntas (~1 segundo)</li>
+                    <li>Turno 2 → Tareas 3, 4, 5 entran y corren juntas (~1 segundo)</li>
+                    <li>Turno 3 → Tareas 6, 7, 8 entran y corren juntas (~1 segundo)</li>
+                    <li>Turno 4 → Tarea 9 sola (~1 segundo)</li>
+                    <li><strong>TOTAL:  ~4 segundos</strong></li>
+                </ul>
+                <br>
+                Sin Semaphore → <code>gather()</code> lanzaría las 10 a la vez → ~1 segundo, pero 10.000 tareas tumbarían el servidor remoto.<br>
+                Con Semaphore(3) → controlado, predecible, respetuoso con el servidor.<br><br>
+                <strong>Regla práctica:</strong> Si vas a hacer más de ~50 peticiones concurrentes a una API o base de datos externa, siempre usa un Semaphore.
+            </div>
+        </div>

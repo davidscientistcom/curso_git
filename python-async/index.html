@@ -98,8 +98,8 @@
 
         <div class="code-block">
             <div class="code-header"><span class="code-lang">bash — setup entorno del curso</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
-            <pre><code><span class="cmt"># Crear entorno virtual</span>
-python -m venv .venv && source .venv/bin/activate
+            <pre><code><span class="cmt"># Crear entorno conda</span>
+conda create -n pyasync python=3.11 -y && conda activate pyasync
 
 <span class="cmt"># Instalar todas las dependencias del curso</span>
 pip install pytest pytest-asyncio httpx respx aiofiles aiohttp asyncpg \
