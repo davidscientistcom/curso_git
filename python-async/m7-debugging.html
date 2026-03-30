@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M7: Debugging & Profiling | Python Async</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-icon">🐍</span> Python Async</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="m1-modelo.html">M1: GIL</a></li>
+                <li><a href="m2-sincrono.html">M2: Síncrono</a></li>
+                <li><a href="m3-asyncio.html">M3: asyncio</a></li>
+                <li><a href="m4-testing.html">M4: Testing</a></li>
+                <li><a href="m5-casos.html">M5: Casos</a></li>
+                <li><a href="m6-ecosistema.html">M6: Ecosistema</a></li>
+                <li><a href="m7-debugging.html">M7: Debug" class="active</a></li>
+                <li><a href="m8-fastapi.html">M8: FastAPI</a></li>
+                <li><a href="m9-esquema.html">M9: Esquema</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">🔍</span>
+        <h1>M7 — <span class="gradient-text">Debugging & Profiling</span></h1>
+        <p>Encontrar cuellos de botella en asincronía es un arte distinto. Aprende a detectar quién está ralentizando tu Event Loop.</p>
+    </header>
+
+    <main class="content">
+        <h2>1. El Modo Debug de asyncio</h2>
+        <p>Cuando el Event Loop va lento, generalmente significa que ALGUIEN ejecutó código bloqueante síncrono por accidente y acaparó el hilo principial. Para detectarlo, habilitamos el modo Debug.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Detectar lentitud automática</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+import time
+import logging
+
+<span class="cmt"># Configuramos logging para ver los warnings</span>
+logging.basicConfig(level=logging.WARNING)
+
+async def tarea_molesta():
+    <span class="cmt"># MAL: Esto bloquea el hilo por 0.5s y será captado por asyncio</span>
+    time.sleep(0.5)
+
+async def main():
+    loop = asyncio.get_running_loop()
+    
+    <span class="cmt"># Activamos el modo debug manualmente</span>
+    loop.set_debug(True)
+    <span class="cmt"># (O puedes arrancar python con: python -X dev script.py)</span>
+    
+    <span class="cmt"># Configuramos el umbral (por defecto es 0.1s, lo bajamos a 0.05s)</span>
+    loop.slow_callback_duration = 0.05
+    
+    await tarea_molesta()
+
+<span class="cmt"># Output esperado:</span>
+<span class="cmt"># WARNING:asyncio:Executing &lt;Task finished name='Task-1'...&gt; took 0.501 seconds!</span>
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-icon">💡</div>
+            <div class="info-box-text">
+                <strong>¿Qué busca asyncio?</strong> Vigila cuánto tarda cada <code>callback</code> en terminar y devolver el control al loop. Si tardan más de 100 milisegundos (por defecto), lanza un <code>WARNING</code> a la consola. Este es tu faro en la oscuridad.
+            </div>
+        </div>
+
+        <h2>2. Profiling Profesional: yappi y aiomonitor</h2>
+        <p>Las herramientas tradicionales como <code>cProfile</code> asumen que el tiempo de CPU es igual al tiempo transcurrido, pero en asincronía pasamos la mayor parte del tiempo <em>esperando</em>.</p>
+
+        <div class="concept-grid">
+            <div class="concept-card purple" style="cursor:default">
+                <h3>Yappi (Yet Another Python Profiler)</h3>
+                <p>El único profiler diseñado de cero para entender greenlets y coroutines (asyncio). Separa claramente el tiempo de espera en Socket del tiempo real de CPU.</p>
+                <code>yappi.set_clock_type("wall")<br>yappi.start()<br># tu codigo<br>yappi.stop()</code>
+            </div>
+            <div class="concept-card rose" style="cursor:default">
+                <h3>aiomonitor</h3>
+                <p>Abre un puerto TCP en tu aplicación viva y de producción. Permite conectarte por telnet/netcat y ver en tiempo real cuántas y cuáles <em>tasks</em> están atascadas.</p>
+                <code>with aiomonitor.start_monitor(loop):<br>&nbsp;&nbsp;loop.run_forever()</code>
+            </div>
+        </div>
+
+        <h2>3. Advertencias comunes y cómo resolverlas</h2>
+        
+        <h3>"sys:1: RuntimeWarning: coroutine 'f' was never awaited"</h3>
+        <p>Ocurre cuando llamas a una coroutine pero olvidaste el <code>await</code> delante. La tarea NO se ejecutó en absoluto.</p>
+        <div class="code-block" style="background:#1e1e2e;padding:1rem;border-radius:8px;"><code>res = fetch_data() # ❌ Lanza warning<br>res = await fetch_data() # ✅ Correcto</code></div>
+
+        <h3>"Task exception was never retrieved"</h3>
+        <p>Ocurre cuando creas una tarea con <code>asyncio.create_task()</code>, esa tarea sufre un Error interno, y como nadie hizo `await` sobre la tarea, el framework asyncio nunca supo a quién devolverle la excepción, así que simplemente la tira a la consola en formato warning.</p>
+        <div class="text-xs" style="margin-top:0.5rem"><strong>Solución:</strong> Guarda las tareas en una lista y aségurate de hacer <code>await asyncio.gather(*tasks)</code> al final, o añádeles un callback <code>task.add_done_callback(log_error_if_failed)</code>.</div>
+
+        <a href="index.html" class="btn btn-primary" style="margin-top:2rem;">Volver al Inicio →</a>
+    </main>
+
+    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
+        &copy; 2026 LucentIA Research · Python Async TDD-First
+    </footer>
+    <script>
+        const nb = document.getElementById('navbar');
+        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('pre').innerText;
+            navigator.clipboard.writeText(code).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8: FastAPI Sync vs Async | Python Async</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-icon">🐍</span> Python Async</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="m1-modelo.html">M1: GIL</a></li>
+                <li><a href="m2-sincrono.html">M2: Síncrono</a></li>
+                <li><a href="m3-asyncio.html">M3: asyncio</a></li>
+                <li><a href="m4-testing.html">M4: Testing</a></li>
+                <li><a href="m5-casos.html">M5: Casos</a></li>
+                <li><a href="m6-ecosistema.html">M6: Ecosistema</a></li>
+                <li><a href="m7-debugging.html">M7: Debug</a></li>
+                <li><a href="m8-fastapi.html" class="active">M8: FastAPI</a></li>
+                <li><a href="m9-esquema.html">M9: Esquema</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">🚀</span>
+        <h1>M8 — <span class="gradient-text">FastAPI: Entendiendo el Motor</span></h1>
+        <p>Cómo FastAPI decide ejecutar tu código. El impacto crítico de <code>def</code> vs <code>async def</code> en aplicaciones de producción.</p>
+    </header>
+
+    <main class="content">
+        <h2>1. El Secreto de FastAPI (Starlette)</h2>
+        <p>FastAPI (construido sobre Starlette) es fundamentalmente un framework asíncrono que corre dentro de un Event Loop (usualmente vía <code>uvicorn</code>). Sin embargo, fue diseñado para ser accesible y permite definir rutas (endpoints) síncronas tradicionales.</p>
+
+        <div class="info-box info">
+            <div class="info-box-icon">⚖️</div>
+            <div class="info-box-text">
+                Frente a una petición, FastAPI inspecciona tu función. Si pones <code>async def</code>, la ejecuta directamente en el hilo principal (Event Loop). Si pones <code>def</code>, la envía a un ThreadPool (hilos secundarios) gestionado por <code>anyio</code>.
+            </div>
+        </div>
+
+        <h2>2. Escenarios Clave: Qué usar y Cuándo</h2>
+        
+        <div class="concept-grid">
+            <div class="concept-card cyan" style="cursor:default">
+                <h3>Escenario A: I/O Asíncrono</h3>
+                <p>Estás usando <code>httpx</code>, <code>asyncpg</code>, o Motor (MongoDB async).</p>
+                <p><strong>Usa:</strong> <code>async def</code></p>
+                <code>@app.get("/")<br>async def read_data():<br>&nbsp;&nbsp;return await db.fetch_all()</code>
+            </div>
+            <div class="concept-card green" style="cursor:default">
+                <h3>Escenario B: I/O Síncrono (típico)</h3>
+                <p>Estás usando SQLAlchemy clásico, <code>psycopg2</code> o <code>requests</code>.</p>
+                <p><strong>Usa:</strong> <code>def</code></p>
+                <code>@app.get("/")<br>def read_data():<br>&nbsp;&nbsp;return db.query(User).all()</code>
+            </div>
+        </div>
+
+        <h2>3. Los Errores que Tumban Servidores</h2>
+        <p>Veamos los dos antipatrones más comunes que colapsarán la capacidad (throughput) de tu API.</p>
+
+        <h3>❌ Error 1: Código bloqueante en una función `async def`</h3>
+        <p>Este es <strong>el peor error posible</strong>. Si usas <code>async def</code>, FastAPI confía en ti y te da el hilo principal. Si haces <code>time.sleep()</code> o una query de SQLAlchemy ahí, <strong>todo el servidor web se congela</strong>. Ningún otro usuario podrá hacer ninguna petición hasta que termines.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Tumbando el Event Loop</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import time
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/error-fatal")
+async def error_fatal():
+    <span class="cmt"># ❌ CRÍTICO: time.sleep detiene el EVENT LOOP entero.</span>
+    <span class="cmt"># Si esto tarda 2 segundos, tu servidor atiende 0 peticiones durante esos 2s.</span>
+    time.sleep(2) 
+    return {"message": "El servidor acaba de revivir"}
+</code></pre>
+        </div>
+
+        <h3>❌ Error 2: `await` o librerías Async en funciones `def`</h3>
+        <p>Si usas <code>def</code> (síncrono), FastAPI te pone en un hilo secundario. ¡En ese hilo no hay Event Loop corriendo! Si intentas hacer <code>await</code>, Python te lanzará un <code>SyntaxError</code>. Si llamas a bibliotecas async sin <code>await</code>, recibirás un objeto coroutine indescifrable.</p>
+
+        <h2>4. Demostración Correcta con TDD</h2>
+        <p>Veamos cómo probar y aislar ambos comportamientos seguros con <code>pytest</code>.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — test_fastapi_modes.py</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>from fastapi import FastAPI
+from fastapi.testclient import TestClient
+import time
+import asyncio
+
+app = FastAPI()
+
+<span class="cmt"># ✅ CORRECTO: Tarea bloqueante en un DEF normal (ThreadPool)</span>
+@app.get("/sync-seguro")
+def sync_seguro():
+    <span class="cmt"># El Event loop de FastAPI sigue libre atendiendo otras peticiones</span>
+    time.sleep(0.5)
+    return {"status": "ok"}
+
+<span class="cmt"># ✅ CORRECTO: Tarea asíncrona en un ASYNC DEF (Event Loop)</span>
+@app.get("/async-seguro")
+async def async_seguro():
+    <span class="cmt"># Cede el control mientras espera</span>
+    await asyncio.sleep(0.5)
+    return {"status": "ok"}
+
+client = TestClient(app)
+
+def test_endpoints_respond():
+    <span class="cmt"># Ambos endpoint funcionan y devuelven el resultado esperado.</span>
+    <span class="cmt"># TestClient internamente levanta la app y hace la petición HTTP real.</span>
+    assert client.get("/sync-seguro").json() == {"status": "ok"}
+    assert client.get("/async-seguro").json() == {"status": "ok"}
+</code></pre>
+        </div>
+
+        <a href="m9-esquema.html" class="btn btn-primary" style="margin-top:2rem;">Continuar a M9: Esquema Global →</a>
+    </main>
+
+    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
+        &copy; 2026 LucentIA Research · Python Async TDD-First
+    </footer>
+    <script>
+        const nb = document.getElementById('navbar');
+        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('pre').innerText;
+            navigator.clipboard.writeText(code).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
+        }
+    </script>
+</body>
+</html>

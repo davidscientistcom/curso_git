@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M9: Esquema General | Python Async</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Mermaid CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            fontFamily: 'Inter',
+            sequence: { showSequenceNumbers: true }
+        });
+    </script>
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-icon">🐍</span> Python Async</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="m1-modelo.html">M1: GIL</a></li>
+                <li><a href="m2-sincrono.html">M2: Síncrono</a></li>
+                <li><a href="m3-asyncio.html">M3: asyncio</a></li>
+                <li><a href="m4-testing.html">M4: Testing</a></li>
+                <li><a href="m5-casos.html">M5: Casos</a></li>
+                <li><a href="m6-ecosistema.html">M6: Ecosistema</a></li>
+                <li><a href="m7-debugging.html">M7: Debug</a></li>
+                <li><a href="m8-fastapi.html">M8: FastAPI</a></li>
+                <li><a href="m9-esquema.html" class="active">M9: Esquema</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">🗺️</span>
+        <h1>M9 — <span class="gradient-text">Esquema Arquitectónico</span></h1>
+        <p>El diagrama definitivo de toma de decisiones. ¿Cuándo debemos usar Threads, Multiprocessing o Asyncio?</p>
+    </header>
+
+    <main class="content">
+        <h2>Árbol de Decisión de Concurrencia en Python</h2>
+        <p>Sigue las flechas para saber qué herramienta primitiva es la mejor para el cuello de botella de tu programa.</p>
+
+        <div style="background:var(--bg2); padding:2rem; border-radius:12px; margin: 2rem 0; border: 1px solid var(--border); text-align:center;">
+            <div class="mermaid">
+            flowchart TD
+                Start([¿Tu Tarea es lenta?]) --> Q1{¿Es CPU-Bound\no I/O-Bound?}
+                
+                %% Rama CPU
+                Q1 -- "CPU-Bound\n(Cálculos matemáticos,\nprocesamiento ML)" --> CPU1["¿Llamas a librerías\nen C (NumPy,\nPandas, Polars)?"]
+                CPU1 -- Sí --> GilLib["El GIL se libera en C"] --> Th1[Usa threading o\nThreadPoolExecutor]
+                CPU1 -- No --> Pu[El GIL bloquea tu código\nPython] --> Mpe[Usa multiprocessing\no ProcessPoolExecutor]
+                
+                %% Rama I/O
+                Q1 -- "I/O-Bound\n(Red, API, Base de Datos, Disco)" --> IO1{"¿Soporta la librería\nasincronía nativa\n(aiohttp, asyncpg)?"}
+                IO1 -- No --> LegacyLib["Librería Bloqueante (requests, psycopg2)"]
+                LegacyLib --> fastapi_q{"¿Estás en FastAPI?"}
+                fastapi_q -- Sí --> Def[Usa 'def' normal\nFastAPI usará ThreadPool]
+                fastapi_q -- No --> to_thread[Usa asyncio.to_thread()\no ThreadPoolExecutor]
+                
+                IO1 -- Sí --> ModernLib["Librería Async Nativa"]
+                ModernLib --> AsyncDef[Usa asyncio puro\n(async def / await)]
+
+                %% Estilos visuales
+                classDef default fill:#1e1e2e,stroke:#4b5563,stroke-width:2px,color:#fff;
+                classDef question fill:#3f3cbb,stroke:#8b5cf6,stroke-width:2px,color:#fff;
+                classDef warning fill:#b45309,stroke:#f59e0b,stroke-width:2px,color:#fff;
+                classDef success fill:#047857,stroke:#10b981,stroke-width:2px,color:#fff;
+                
+                class Q1,IO1,fastapi_q,CPU1 question;
+                class LegacyLib,Pu warning;
+                class AsyncDef,Mpe,Th1,Def,to_thread success;
+            </div>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-icon">💡</div>
+            <div class="info-box-text">
+                <strong>Resumen rápido de los ganadores:</strong><br>
+                <ul>
+                    <li><strong>Para cálculos pesados puros de CPU en Python:</strong> <code>multiprocessing</code> (Procesos)</li>
+                    <li><strong>Para código síncrono antiguo bloqueante (I/O):</strong> <code>concurrent.futures.ThreadPoolExecutor</code> (Hilos)</li>
+                    <li><strong>Para I/O moderno y escalabilidad masiva:</strong> <code>asyncio</code> (Event Loop Cooperativo con Coroutines)</li>
+                </ul>
+            </div>
+        </div>
+
+        <a href="index.html" class="btn btn-primary" style="margin-top:2rem;">Volver al Inicio del Curso →</a>
+    </main>
+
+    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
+        &copy; 2026 LucentIA Research · Python Async TDD-First
+    </footer>
+    <script>
+        const nb = document.getElementById('navbar');
+        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
+    </script>
+</body>
+</html>

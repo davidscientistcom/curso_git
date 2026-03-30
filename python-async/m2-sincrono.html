@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M2: Python Síncrono con TDD | Python Async</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-icon">🐍</span> Python Async</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="m1-modelo.html">M1: GIL</a></li>
+                <li><a href="m2-sincrono.html" class="active">M2: Síncrono</a></li>
+                <li><a href="m3-asyncio.html">M3: asyncio</a></li>
+                <li><a href="m4-testing.html">M4: Testing</a></li>
+                <li><a href="m5-casos.html">M5: Casos</a></li>
+                <li><a href="m6-ecosistema.html">M6: Ecosistema</a></li>
+                <li><a href="m7-debugging.html">M7: Debug</a></li>
+                <li><a href="m8-fastapi.html">M8: FastAPI</a></li>
+                <li><a href="m9-esquema.html">M9: Esquema</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">🔗</span>
+        <h1>M2 — <span class="gradient-text">Python Síncrono con TDD</span></h1>
+        <p>Entendiendo threads, procesos, race conditions y cómo testear código síncrono concurrente para ver por qué preferimos asyncio.</p>
+    </header>
+
+    <main class="content">
+        <h2>1. El Riesgo de los Threads (Race Conditions)</h2>
+        <p>El problema con <code>threading</code> no es la concurrencia, son los estados compartidos mutables. <strong>El SO puede pausar tu hilo en CUALQUIER instrucción de máquina.</strong></p>
+
+        <div class="info-box warning">
+            <div class="info-box-icon">⚠️</div>
+            <div class="info-box-text">
+                En Python, una operación aparentemente atómica como <code>contador += 1</code> son en realidad múltiples instrucciones de bytecode a bajo nivel (LOAD, ADD, STORE). El SO puede interrumpir justo en medio.
+            </div>
+        </div>
+
+        <h3>🚨 Pruebas y Código: Demostración TDD del problema</h3>
+        
+        <p>Vamos a escribir un test que obligue a fallar a un contador inseguro, y luego crearemos un contador seguro con un Lock (candado).</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — test_threads.py</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import threading
+
+<span class="cmt"># 1. LA IMPLEMENTACIÓN INSEGURA</span>
+class UnsafeCounter:
+    def __init__(self):
+        self.value = 0
+        
+    def increment(self):
+        <span class="cmt"># Esto NO es seguro con threads, múltiples hilos intentarán leer y sumar a la vez</span>
+        self.value += 1
+
+<span class="cmt"># 2. EL TEST (TDD)</span>
+def test_unsafe_counter_race_condition():
+    counter = UnsafeCounter()
+    
+    <span class="cmt"># Función que cada hilo ejecutará 100,000 veces</span>
+    def worker():
+        for _ in range(100_000):
+            counter.increment()
+            
+    <span class="cmt"># Creamos 10 hilos</span>
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+    
+    <span class="cmt"># Arrancamos los hilos y esperamos a que mueran (.join)</span>
+    for t in threads: t.start()
+    for t in threads: t.join()
+        
+    <span class="cmt"># El total debería ser 1,000,000. Pero CASI SEGURO que no lo será. Fallará la aserción.</span>
+    <span class="cmt"># (En un test real, haríamos assert counter.value < 1_000_000 para forzar testear el fallo)</span>
+    print(f"Resultado final inseguro: {counter.value}")</code></pre>
+        </div>
+
+        <h2>2. Arreglando el código con Locks</h2>
+        <p>Para arreglar esto, necesitamos que el acceso a <code>self.value += 1</code> sea exclusivo. Para eso usamos <code>threading.Lock()</code>.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Seguro con Locks</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="cmt"># 3. LA IMPLEMENTACIÓN SEGURA</span>
+class SafeCounter:
+    def __init__(self):
+        self.value = 0
+        self._lock = threading.Lock() <span class="cmt"># Creamos un candado</span>
+        
+    def increment(self):
+        <span class="cmt"># Con 'with', el hilo coge la llave del candado. Al salir, la devuelve.</span>
+        with self._lock:
+            self.value += 1
+
+<span class="cmt"># 4. EL TEST VERDE (TDD)</span>
+def test_safe_counter():
+    counter = SafeCounter()
+    
+    def worker():
+        for _ in range(100_000):
+            counter.increment()
+            
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+    for t in threads: t.start()
+    for t in threads: t.join()
+        
+    <span class="cmt"># AHORA SÍ: SIEMPRE será 1,000,000 exacto.</span>
+    assert counter.value == 1_000_000
+    print(f"Resultado final SEGURO: {counter.value} ✅")</code></pre>
+        </div>
+
+        <h2>3. Ejecutando Tareas Masivas: ThreadPoolExecutor</h2>
+        <p>Manejar listas de threads manualmente (crear, `.start()`, `.join()`) es arcaico y muy propenso a errores. En Python moderno (incluso sin asyncio), usamos la API de <code>concurrent.futures</code>.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — concurrent.futures</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>from concurrent.futures import ThreadPoolExecutor
+import time
+
+def fake_download(url_id: int) -> str:
+    time.sleep(0.5) <span class="cmt"># Simulamos I/O (espera de red)</span>
+    return f"Data del id {url_id}"
+
+def test_threadpool_executor():
+    start = time.time()
+    
+    <span class="cmt"># ThreadPoolExecutor gestiona automáticamente los recursos por ti.</span>
+    <span class="cmt"># Si pones max_workers=5, lanza de 5 en 5.</span>
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        <span class="cmt"># El método 'map' ejecuta la función concurrentemente con todos los inputs.</span>
+        results = list(executor.map(fake_download, range(10)))
+        
+    duration = time.time() - start
+    
+    <span class="cmt"># 10 tareas de 0.5 seg con 5 workers = 1 segundo en total!</span>
+    assert len(results) == 10
+    print(f"Terminado en {duration:.2f}s")</code></pre>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-icon">⚖️</div>
+            <div class="info-box-text">
+                <strong>¿Por qué pasarnos a Asyncio si ThreadPool es tan cómodo?</strong> <br>
+                Porque un thread consume MUCHÍSIMA RAM (aprox 8 MB por hilo). Si necesitas manejar 10,000 conexiones concurrentes (ej: WebSockets chat), ThreadPool moriría por memoria. Asyncio puede manejar 100,000 conexiones en 1 solo hilo y muy poca RAM.
+            </div>
+        </div>
+
+        <a href="m3-asyncio.html" class="btn btn-primary" style="margin-top:2rem;">Continuar a M3: asyncio de Cero a Expert →</a>
+    </main>
+
+    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
+        &copy; 2026 LucentIA Research · Python Async TDD-First
+    </footer>
+    <script>
+        const nb = document.getElementById('navbar');
+        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('pre').innerText;
+            navigator.clipboard.writeText(code).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
+        }
+    </script>
+</body>
+</html>

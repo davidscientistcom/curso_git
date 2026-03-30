@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3: asyncio de Cero a Expert | Python Async</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-icon">🐍</span> Python Async</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="m1-modelo.html">M1: GIL</a></li>
+                <li><a href="m2-sincrono.html">M2: Síncrono</a></li>
+                <li><a href="m3-asyncio.html" class="active">M3: asyncio</a></li>
+                <li><a href="m4-testing.html">M4: Testing</a></li>
+                <li><a href="m5-casos.html">M5: Casos</a></li>
+                <li><a href="m6-ecosistema.html">M6: Ecosistema</a></li>
+                <li><a href="m7-debugging.html">M7: Debug</a></li>
+                <li><a href="m8-fastapi.html">M8: FastAPI</a></li>
+                <li><a href="m9-esquema.html">M9: Esquema</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">⚡</span>
+        <h1>M3 — <span class="gradient-text">asyncio de Cero a Expert</span></h1>
+        <p>Coroutines, The Event Loop, Tasks y Synchronization Primitives. Todo escrito sobre 1 solo hilo.</p>
+    </header>
+
+    <main class="content">
+        <h2>1. El Bucle de Eventos (Event Loop) y Coroutines</h2>
+        <p>A diferencia de los hilos donde el Sistema Operativo te corta en cualquier momento (<em>preemptive multitasking</em>), en <code>asyncio</code> las funciones deciden cuándo pausarse voluntariamente y devolver el control al bucle central (<em>cooperative multitasking</em>).</p>
+
+        <div class="info-box info">
+            <div class="info-box-icon">⚖️</div>
+            <div class="info-box-text">
+                Una función definida con <code>async def</code> es una <strong>Coroutine</strong>. Cuando la llamas, no se ejecuta, ¡devuelve un objeto coroutine! Para ejecutarla realmente, debe ir acompañada de un <code>await</code> o enviarse al Event Loop con <code>asyncio.run()</code>.
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Sintaxis Básica</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+
+async def fetch_data(id: int) -> str:
+    print(f"[{id}] Empezando descarga...")
+    await asyncio.sleep(1) <span class="cmt"># Simulamos I/O. ¡Aquí es donde cedemos el control!</span>
+    print(f"[{id}] Descarga completa.")
+    return f"Data {id}"
+
+async def main():
+    <span class="cmt"># Si hacemos 'await' uno tras otro, se vuelve SÍNCRONO (tarda 2s en total)</span>
+    res_1 = await fetch_data(1)
+    res_2 = await fetch_data(2)
+    print(f"Resultados: {res_1}, {res_2}")
+
+<span class="cmt"># asyncio.run es la puerta de entrada.</span>
+<span class="cmt"># Crea el event loop, ejecuta la coroutine main(), y cierra el loop.</span>
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+        </div>
+
+        <h2>2. Ejecución Concurrente: Tasks y Gather</h2>
+        <p>Hacer <code>await</code> secuencialmente derrota el propósito de asincronía. Para hacer cosas a la vez, necesitamos encolar las coroutines en el Event Loop como <strong>Tasks</strong> (Tareas).</p>
+
+        <div class="concept-grid">
+            <div class="concept-card cyan" style="cursor:default">
+                <h3>🛠️ asyncio.create_task()</h3>
+                <p>Programa una coroutine para que se ejecute en el fondo ("fuego y olvido", o guardas la referencia para hacer <code>await</code> más tarde).</p>
+            </div>
+            <div class="concept-card green" style="cursor:default">
+                <h3>📦 asyncio.gather()</h3>
+                <p>El método rey. Le pasas N coroutines, las lanza todas concurrentemente y te devuelve una lista con los N resultados en el mismo orden original.</p>
+            </div>
+        </div>
+
+        <h3>🚨 TDD: Verificando la concurrencia</h3>
+        <p>Escribimos un test primero que nos asegura que la ejecución de 5 descargas de 0.5s tarda menos de 1 segundo.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — test_gather.py</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+import time
+import pytest
+
+<span class="cmt"># Nota: usar el marcador pytest.mark.asyncio es OBLIGATORIO para tests async</span>
+@pytest.mark.asyncio
+async def test_gather_execution_time():
+    async def fake_request(id: int):
+        await asyncio.sleep(0.5)
+        return id
+        
+    start = time.time()
+    
+    <span class="cmt"># Lanzamos 5 peticiones A LA VEZ</span>
+    <span class="cmt"># Nota: pasamos coroutines directas: fake_request(1)</span>
+    resultados = await asyncio.gather(
+        fake_request(1),
+        fake_request(2),
+        fake_request(3),
+        fake_request(4),
+        fake_request(5)
+    )
+    
+    duration = time.time() - start
+    
+    <span class="cmt"># Verificamos que el orden se mantiene</span>
+    assert resultados == [1, 2, 3, 4, 5]
+    <span class="cmt"># Verificamos concurrencia: 5x0.5s = 2.5s secuencial PERO <0.6s asíncrono</span>
+    assert duration < 0.6
+    print(f"Tardó {duration:.2f}s ✅")</code></pre>
+        </div>
+
+        <h2>3. Semáforos (Limitando Concurrencia)</h2>
+        <p><code>gather</code> es genial, pero si le pasas 10,000 coroutines que hacen consultas a una BD, ¡quemarás el servidor! Necesitamos poner un "portero de discoteca". Eso es el <strong>Semaphore</strong>.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Semáforos</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+
+async def fetch_with_semaphore(sem: asyncio.Semaphore, id: int):
+    <span class="cmt"># Si ya hay 3 personas dentro, el 4º se pausa aquí hasta que uno salga</span>
+    async with sem:
+        print(f"[{id}] Entró. Consultando API...")
+        await asyncio.sleep(1)
+        print(f"[{id}] Salió.")
+        return f"OK-{id}"
+
+async def main():
+    <span class="cmt"># Límite máximo: 3 coroutines ejecutando a la vez</span>
+    sem = asyncio.Semaphore(3)
+    
+    <span class="cmt"># Generamos 10 tareas</span>
+    tasks = [fetch_with_semaphore(sem, i) for i in range(10)]
+    
+    <span class="cmt"># Inicia. Verás en consola cómo entran de 3 en 3.</span>
+    await asyncio.gather(*tasks)</code></pre>
+        </div>
+
+        <a href="m4-testing.html" class="btn btn-primary" style="margin-top:2rem;">Continuar a M4: Testing Async →</a>
+    </main>
+
+    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
+        &copy; 2026 LucentIA Research · Python Async TDD-First
+    </footer>
+    <script>
+        const nb = document.getElementById('navbar');
+        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('pre').innerText;
+            navigator.clipboard.writeText(code).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
+        }
+    </script>
+</body>
+</html>

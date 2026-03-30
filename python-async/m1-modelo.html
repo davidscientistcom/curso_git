@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M1: GIL & Modelo de Ejecución | Python Async</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand"><span class="brand-icon">🐍</span> Python Async</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="m1-modelo.html" class="active">M1: GIL</a></li>
+                <li><a href="m2-sincrono.html">M2: Síncrono</a></li>
+                <li><a href="m3-asyncio.html">M3: asyncio</a></li>
+                <li><a href="m4-testing.html">M4: Testing</a></li>
+                <li><a href="m5-casos.html">M5: Casos</a></li>
+                <li><a href="m6-ecosistema.html">M6: Ecosistema</a></li>
+                <li><a href="m7-debugging.html">M7: Debug</a></li>
+                <li><a href="m8-fastapi.html">M8: FastAPI</a></li>
+                <li><a href="m9-esquema.html">M9: Esquema</a></li>
+            </ul>
+            <button class="nav-mobile-btn" id="navToggle">☰</button>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">⚙️</span>
+        <h1>M1 — <span class="gradient-text">GIL & Modelo de Ejecución</span></h1>
+        <p>Entendiendo las entrañas de CPython, el famoso GIL, y la diferencia entre Concurrencia, Paralelismo y Asincronía.</p>
+    </header>
+
+    <main class="content">
+        <h2>1. El Global Interpreter Lock (GIL)</h2>
+        <p>Antes de hablar de asincronía, necesitamos entender a nuestro "amigo" y cuello de botella favorito: el <strong>GIL</strong>.</p>
+        
+        <div class="info-box warning">
+            <div class="info-box-icon">⚠️</div>
+            <div class="info-box-text">
+                <strong>¿Qué es el GIL?</strong> Es un mecanismo tipo <em>mutex</em> (candado) que protege el acceso a los objetos de CPython, previniendo que múltiples hilos de ejecución ejecuten bytecodes de Python simultáneamente.
+            </div>
+        </div>
+
+        <h3>Analogía Inmobiliaria 🏠</h3>
+        <p>Imagina que CPython es una obra de construcción y tienes 4 obreros (hilos - threads). Sin embargo, solo hay <strong>un martillo (el GIL)</strong>. Aunque tengas 4 obreros, solo el obrero que tiene el martillo en la mano puede clavar clavos. Los demás tienen que esperar.</p>
+
+        <p>¿Es python lento por esto? Depende. Si tu programa hace muchas matemáticas (clavar clavos todo el tiempo), sí, el GIL te frena. Pero si tu programa hace muchas peticiones de red (pedir materiales y esperar a que lleguen), el obrero suelta el martillo mientras espera, permitiendo que otro obrero trabaje. Aquí es donde brilla el enfoque asíncrono.</p>
+
+        <h2>2. CPU-Bound vs I/O-Bound</h2>
+        
+        <div class="concept-grid">
+            <div class="concept-card cyan" style="cursor:default">
+                <h3>💻 CPU-Bound</h3>
+                <p>El cuello de botella es el procesador. Cálculos matemáticos, procesamiento de imágenes, encriptación.</p>
+                <p><strong>El GIL impacta negativamente.</strong> Requiere <code>multiprocessing</code> (contratar a 4 obreros distintos con 4 martillos distintos).</p>
+            </div>
+            <div class="concept-card green" style="cursor:default">
+                <h3>🌐 I/O-Bound</h3>
+                <p>El cuello de botella es esperar. Peticiones de red, lectura de bases de datos, leer disco.</p>
+                <p><strong>El GIL NO impacta negativamente.</strong> Podemos usar <code>threading</code> o <code>asyncio</code>, porque el hilo "suelta el candado" mientras espera.</p>
+            </div>
+        </div>
+
+        <h2>3. Concurrencia vs Paralelismo vs Asincronía</h2>
+        
+        <p>Estos 3 términos suelen confundirse. Veámoslo de forma sencilla:</p>
+
+        <ul>
+            <li><strong>Concurrencia:</strong> Hacer malabares con varias tareas (avanzas un poquito en cada una). Puede ser con 1 o más núcleos.</li>
+            <li><strong>Paralelismo:</strong> Hacer realmente varias cosas <em>AL MISMO TIEMPO EXACTO</em> (requiere múltiples núcleos físicos). En Python, esto se hace con <code>multiprocessing</code>.</li>
+            <li><strong>Asincronía:</strong> Una forma específica de concurrencia donde un solo hilo decide cuándo saltar de tarea en tarea, usando la instrucción de "espera" (<code>await</code>) para no bloquearse e irse a hacer otra cosa útil mientras tanto.</li>
+        </ul>
+
+        <div class="info-box info">
+            <div class="info-box-icon">💡</div>
+            <div class="info-box-text">
+                <strong>La Regla de Oro en Python:</strong> <br>
+                1. ¿Tareas matemáticas fuertes? Usa <code>multiprocessing</code>.<br>
+                2. ¿Peticiones a red, API, BD o disco? Usa <code>asyncio</code> (y en menor medida <code>threading</code>). Daremos prioridad a <code>asyncio</code> por ser más seguro y predecible.
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Detectando si algo es bloqueante (Ejemplo mental)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code><span class="cmt"># Esto es una operación I/O-Bound. El GIL se libera automáticamente.</span>
+<span class="cmt"># Perfecto para asyncio o threading.</span>
+response = requests.get("https://api.github.com")
+
+<span class="cmt"># Esto es una operación CPU-Bound. El GIL se mantiene bloqueado.</span>
+<span class="cmt"># Congelará todo el programa. Necesita multiprocessing.</span>
+total = sum(i * i for i in range(10_000_000))
+</code></pre>
+        </div>
+
+        <a href="m2-sincrono.html" class="btn btn-primary" style="margin-top:2rem;">Continuar a M2: Síncrono con TDD →</a>
+    </main>
+
+    <footer style="text-align:center;padding:2rem;color:var(--text3);font-size:0.8rem;border-top:1px solid var(--border);">
+        &copy; 2026 LucentIA Research · Python Async TDD-First
+    </footer>
+    <script>
+        const nb = document.getElementById('navbar');
+        window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('navToggle')?.addEventListener('click', () => document.querySelector('.nav-links').classList.toggle('open'));
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('pre').innerText;
+            navigator.clipboard.writeText(code).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
+        }
+    </script>
+</body>
+</html>
