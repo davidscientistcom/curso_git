@@ -28,7 +28,7 @@
     </nav>
 
     <header class="page-hero">
-        <span class="page-hero-icon">🌐</span>
+        <span class="page-hero-icon"></span>
         <h1>M6 — <span class="gradient-text">Ecosistema Async</span></h1>
         <p>No todo en Python está adaptado para asyncio. Conoce las librerías adecuadas y cómo mezclar código síncrono antiguo con moderno.</p>
     </header>
@@ -38,7 +38,7 @@
         <p><code>requests.get()</code>, <code>time.sleep()</code>, y las queries normales de <code>psycopg2</code> o <code>SQLAlchemy sync</code> son <strong>enemigos mortales del Event Loop</strong>.</p>
         
         <div class="info-box warning">
-            <div class="info-box-icon">💥</div>
+            <div class="info-box-icon"></div>
             <div class="info-box-text">
                 Si llamas a una función bloqueante (síncrona) dentro de una coroutine, TODO el framework asyncio se detiene. Las demás peticiones no se procesan hasta que termine. <strong>¡NUNCA uses <code>time.sleep()</code> o <code>requests</code> en llamadas async!</strong>
             </div>

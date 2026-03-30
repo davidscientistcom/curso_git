@@ -35,14 +35,89 @@
 
     <main class="content">
         <h2>1. El Bucle de Eventos (Event Loop) y Coroutines</h2>
-        <p>Hay dos formas de hacer multitarea y es importante entender la diferencia:</p>
-        <ul>
-            <li><strong>Preemptive multitasking (hilos/threads):</strong> El Sistema Operativo interrumpe tu código cuando quiere, sin preguntarte. Tú no controlas cuándo te pausan.</li>
-            <li><strong>Cooperative multitasking (asyncio):</strong> <u>TÚ</u> decides cuándo pausarte, escribiendo <code>await</code>. Si nunca escribes <code>await</code>, tu coroutine monopoliza el Event Loop para siempre y bloquea todo lo demás.</li>
-        </ul>
-        <p>El Event Loop es simplemente un bucle interno (<code>while True</code>) que va mirando qué coroutines están listas para continuar y les da el turno. Cuando una coroutine llega a un <code>await</code>, no se bloquea esperando: le dice al Event Loop "avísame cuando esto esté listo" y el Loop aprovecha para ejecutar otra coroutine.</p>
+        <p><strong>¿Qué es el Event Loop?</strong> Es el componente central de <code>asyncio</code>: un bucle que gestiona y coordina la ejecución de muchas tareas (coroutines) en un solo hilo. El Event Loop mantiene una lista de tareas pendientes y, cuando alguna está lista para avanzar (por ejemplo, porque terminó de esperar un <code>await</code>), le da el turno para que siga ejecutándose. Así, con un solo hilo, puede gestionar miles de operaciones a la vez sin bloquearse.</p>
+        <p>En asyncio, el Event Loop nunca se olvida de ninguna tarea: cuando una operación asíncrona termina, el loop reanuda exactamente la coroutine que estaba esperando ese resultado, justo donde lo dejó.</p>
+        <p>Veamos ejemplos prácticos para entender cómo funciona:</p>
 
-        <p>A diferencia de los hilos donde el Sistema Operativo te corta en cualquier momento (<em>preemptive multitasking</em>), en <code>asyncio</code> las funciones deciden cuándo pausarse voluntariamente y devolver el control al bucle central (<em>cooperative multitasking</em>).</p>
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Ejemplo 1: await en serie (NO concurrente)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+
+async def tarea(id):
+    print(f"Tarea {id}: inicio")
+    await asyncio.sleep(1)
+    print(f"Tarea {id}: fin")
+
+async def main():
+    await tarea(1)
+    await tarea(2)
+    await tarea(3)
+
+asyncio.run(main())
+# Salida:
+# Tarea 1: inicio
+# Tarea 1: fin
+# Tarea 2: inicio
+# Tarea 2: fin
+# Tarea 3: inicio
+# Tarea 3: fin
+# (Tarda ~3 segundos)
+</code></pre>
+        </div>
+        <p>En este ejemplo, aunque usamos <code>async</code> y <code>await</code>, las tareas se ejecutan una tras otra. El Event Loop espera a que termine cada una antes de empezar la siguiente. Esto es equivalente a código síncrono.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Ejemplo 2: await con gather() (Concurrente real)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+
+async def tarea(id):
+    print(f"Tarea {id}: inicio")
+    await asyncio.sleep(1)
+    print(f"Tarea {id}: fin")
+
+async def main():
+    await asyncio.gather(tarea(1), tarea(2), tarea(3))
+
+asyncio.run(main())
+# Salida:
+# Tarea 1: inicio
+# Tarea 2: inicio
+# Tarea 3: inicio
+# Tarea 1: fin
+# Tarea 2: fin
+# Tarea 3: fin
+# (Tarda ~1 segundo)
+</code></pre>
+        </div>
+        <p>Ahora sí, las tres tareas empiezan a la vez y el Event Loop las va avanzando según cada una llega a un <code>await</code>. El tiempo total es el de la tarea más lenta.</p>
+
+        <div class="code-block">
+            <div class="code-header"><span class="code-lang">python — Ejemplo 3: create_task() y control manual</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <pre><code>import asyncio
+
+async def tarea(id):
+    print(f"Tarea {id}: inicio")
+    await asyncio.sleep(1)
+    print(f"Tarea {id}: fin")
+
+async def main():
+    t1 = asyncio.create_task(tarea(1))
+    t2 = asyncio.create_task(tarea(2))
+    await asyncio.sleep(0.5)
+    print("Haciendo otras cosas mientras las tareas corren...")
+    await t1
+    await t2
+
+asyncio.run(main())
+# Salida:
+# Tarea 1: inicio
+# Tarea 2: inicio
+# Haciendo otras cosas mientras las tareas corren...
+# Tarea 1: fin
+# Tarea 2: fin
+</code></pre>
+        </div>
+        <p>Con <code>create_task()</code> lanzamos tareas en background y podemos hacer otras cosas mientras tanto. El Event Loop gestiona todo el avance y reanuda cada tarea cuando corresponde.</p>
 
         <div class="info-box info">
             <div class="info-box-icon">⚖️</div>
@@ -52,25 +127,25 @@
         </div>
 
         <div class="code-block">
-            <div class="code-header"><span class="code-lang">python — Sintaxis Básica</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+            <div class="code-header"><span class="code-lang">python — Ejemplo visual del Event Loop</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
             <pre><code>import asyncio
 
-async def fetch_data(id: int) -> str:
-    print(f"[{id}] Empezando descarga...")
-    await asyncio.sleep(1) <span class="cmt"># Simulamos I/O. ¡Aquí es donde cedemos el control!</span>
-    print(f"[{id}] Descarga completa.")
-    return f"Data {id}"
+async def tarea(id):
+    print(f"Tarea {id}: inicio")
+    await asyncio.sleep(1)
+    print(f"Tarea {id}: fin")
 
 async def main():
-    <span class="cmt"># Si hacemos 'await' uno tras otro, se vuelve SÍNCRONO (tarda 2s en total)</span>
-    res_1 = await fetch_data(1)
-    res_2 = await fetch_data(2)
-    print(f"Resultados: {res_1}, {res_2}")
+    await asyncio.gather(tarea(1), tarea(2), tarea(3))
 
-<span class="cmt"># asyncio.run es la puerta de entrada.</span>
-<span class="cmt"># Crea el event loop, ejecuta la coroutine main(), y cierra el loop.</span>
-if __name__ == "__main__":
-    asyncio.run(main())</code></pre>
+asyncio.run(main())
+# Salida:
+# Tarea 1: inicio
+# Tarea 2: inicio
+# Tarea 3: inicio
+# Tarea 1: fin
+# Tarea 2: fin
+# Tarea 3: fin </code></pre>
         </div>
 
         <div class="info-box warning">
@@ -141,8 +216,8 @@ if __name__ == "__main__":
             </div>
         </div>
 
-        <h3>🚨 TDD: Verificando la concurrencia</h3>
-        <p>Escribimos un test primero que nos asegura que la ejecución de 5 descargas de 0.5s tarda menos de 1 segundo.</p>
+        <h3>TDD: Verificando la concurrencia</h3>
+        <p>Escribimos un test que verifica que la ejecución concurrente de 5 descargas de 0.5s tarda menos de 1 segundo.</p>
 
         <div class="code-block">
             <div class="code-header"><span class="code-lang">python — test_gather.py</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>

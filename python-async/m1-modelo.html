@@ -139,8 +139,9 @@
             </div>
         </div>
 
-        <h3>Analogía Inmobiliaria 🏠</h3>
-        <p>Imagina que CPython es una obra de construcción y tienes 4 obreros (hilos - threads). Sin embargo, solo hay <strong>un martillo (el GIL)</strong>. Aunque tengas 4 obreros, solo el obrero que tiene el martillo en la mano puede clavar clavos. Los demás tienen que esperar.</p>
+            <h3>Descripción Técnica del GIL</h3>
+            <p>El GIL es un mecanismo de CPython que garantiza que solo un hilo puede ejecutar código Python a la vez, incluso en sistemas con múltiples núcleos de CPU. Esto significa que, aunque crees varios hilos, solo uno estará ejecutando código Python puro en cada instante. El GIL no afecta a operaciones que liberan el lock (como llamadas a librerías en C que no tocan objetos Python), pero sí limita el paralelismo real en código CPU-bound escrito en Python puro.</p>
+            <p>El GIL no es un problema para tareas I/O-bound (espera de red, disco, etc.), pero sí lo es para tareas CPU-bound. Para aprovechar varios núcleos en Python puro, usa <code>multiprocessing</code> o librerías que liberen el GIL.</p>
 
         <p>¿Es python lento por esto? Depende. Si tu programa hace muchas matemáticas (clavar clavos todo el tiempo), sí, el GIL te frena. Pero si tu programa hace muchas peticiones de red (pedir materiales y esperar a que lleguen), el obrero suelta el martillo mientras espera, permitiendo que otro obrero trabaje. Aquí es donde brilla el enfoque asíncrono.</p>
 
