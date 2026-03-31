@@ -1,0 +1,133 @@
+<link rel="stylesheet" href="styles.css">
+<div class="content">
+    <h1>🌩️ Nivel 5: Testing de Integración y Entornos Reales</h1>
+    <p>Hemos dominado los mocks, pero al final del día tu código tiene que correr en un servidor real, conectar con una base de datos real y enviar peticiones asíncronas. En este nivel bajamos al barro. Olvida los conectores falsos; levantaremos contenedores Docker reales y los destruiremos al terminar.</p>
+
+    <div class="info-box info">
+        <span class="info-box-icon">💡</span>
+        <div class="info-box-text"><strong>Analogía:</strong> Mocks vs Integración es como entrenar en un simulador de vuelo vs pilotar un avión real. El simulador (Mock) te enseña qué botones pulsar, pero solo el avión real (Integración) te dirá si al pulsar ese botón a 10.000 pies de altura el motor tiembla. Necesitas ambos.</div>
+    </div>
+
+    <h2>Ejercicio 18: Testing Asíncrono puro (Async/Await)</h2>
+    <p>Para testear corrutinas de <code>asyncio</code>, FASTAPI o AIOHTTP no basta con poner <code>await</code> dinámicamente. Necesitas decirle a Pytest que envuelva el test en un bucle de eventos asíncrono. Para ello usamos <code>pytest-asyncio</code>.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_18_async.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+import asyncio
+
+# Función asíncrona real
+async def buscar_usuario_lento(user_id: int):
+    await asyncio.sleep(0.1) # Simulamos latencia de BD
+    return {"id": user_id, "name": "deivit"}
+
+# Si no usamos el marcador de asyncio, Pytest dará un error de "RuntimeWarning: coroutine was never awaited"
+@pytest.mark.asyncio
+async def test_buscar_usuario_lento():
+    resultado = await buscar_usuario_lento(42)
+    assert resultado["name"] == "deivit"
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 19: Transacciones de BD Aisladas (El Rollback)</h2>
+    <p>El error más grave de QA es el <strong>Test Pollution</strong> (cuando un test contamina a otro porque deja datos basura en la DB). ¿Cómo testeamos una inserción si no queremos que la fila se quede ahí? Creamos una transacción en el <code>setUp</code> y hacemos un <code>Rollback</code> forzado en el <code>tearDown</code> de nuestro Fixture.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_19_db_rollback.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# 1. Engine Global
+engine = create_engine("sqlite:///:memory:")
+SessionLocal = sessionmaker(bind=engine)
+
+@pytest.fixture
+def db_session_aislada():
+    # SETUP
+    connection = engine.connect()
+    # Iniciamos una transacción global a nivel de conexión de SQLAlchemy
+    transaction = connection.begin()
+    # Creamos una sesión "hija" que vivirá en esta burbuja de la transacción
+    session = SessionLocal(bind=connection)
+    
+    yield session  # Pausamos y entregamos la sesión al test
+    
+    # TEARDOWN
+    # El test ha terminado. Cerramos sesión.
+    session.close()
+    # ¡Paso Crítico! Abortamos la transacción maestra. NADA de lo que haya hecho el test se guardará.
+    transaction.rollback()
+    connection.close()
+
+def test_insertar_usuario(db_session_aislada):
+    # Simulamos insertar. Todo ocurre en la burbuja de db_session_aislada
+    # Tras ejecutar, la DB real seguirá limpia como una patena.
+    assert True
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 20: Testing Extremo con Docker-Compose (Wait-for-it)</h2>
+    <p>Finalmente, ¿qué ocurre si queremos testear contra el caché Redis real? Levantamos Docker Compose directamente desde Pytest. Pytest se quedará bloqueado esperando a que Redis responda al ping antes de arrancar los tests. Esto es fundamental para pipelines de CI/CD (GitHub Actions, GitLab CI).</p>
+
+    <div class="info-box warning">
+        <span class="info-box-icon">⚠️</span>
+        <div class="info-box-text"><strong>¡Cuidado!</strong> Levantar Docker no es instantáneo. Tienes que implementar un mecanismo de <em>polling</em> (reintentos) en el setup para asegurarte de que el servicio contestó "OK" antes de devolver el yield.</div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_20_docker.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+import subprocess
+import time
+import redis # pip install redis
+
+# Fixture con scope="session" porque levantar Docker es caro (tarda segundos)
+@pytest.fixture(scope="session")
+def servidor_redis_real():
+    # 1. SETUP: Levantamos en background
+    print("\n🐳 Levantando Redis via Docker...")
+    # Asumimos que hay un docker-compose.yml con un servicio "redis" en la carpeta
+    subprocess.run(["docker-compose", "up", "-d", "redis"], check=True)
+    
+    # Wait-for-it: El contenedor está "Arriba" pero el proceso interno tarda milisegundos en aceptar sockets.
+    cliente = redis.Redis(host="localhost", port=6379, db=0)
+    max_reintentos = 10
+    
+    for i in range(max_reintentos):
+        try:
+            # Si el ping pasa, Redis está 100% online
+            if cliente.ping():
+                break
+        except redis.ConnectionError:
+            time.sleep(0.5)
+            if i == max_reintentos - 1:
+                pytest.fail("Redis nunca arrancó a tiempo.")
+
+    # Entregamos el cliente operativo a los tests
+    yield cliente
+    
+    # 2. TEARDOWN: Destruir el contenedor y sanear
+    print("\n🐳 Destruyendo Redis...")
+    subprocess.run(["docker-compose", "down", "-v"], check=True)
+
+def test_redis_cache_es_rapido_y_real(servidor_redis_real):
+    # Escribimos caché
+    servidor_redis_real.set("usuario_42", "deivit_autenticado")
+    
+    # Leemos caché real instantáneo
+    valor = servidor_redis_real.get("usuario_42")
+    assert valor.decode("utf-8") == "deivit_autenticado"
+</code></pre>
+    </div>
+
+</div>

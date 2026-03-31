@@ -1,0 +1,209 @@
+<link rel="stylesheet" href="styles.css">
+<div class="content">
+    <h1>🎭 Nivel 4: Dobles de Prueba (Mocks y Stubs)</h1>
+    <p>Llegamos al terreno más pantanoso del QA. Un Test Doble es un objeto que finge ser otro objeto durante un test. Si abusas de los dobles, tendrás una suite de pruebas que SIEMPRE pasa en verde, incluso cuando tu código de producción está completamente roto.</p>
+
+    <div class="concept-grid">
+        <div class="concept-card purple">
+            <span class="concept-icon">🪆</span>
+            <h3>Dummy</h3>
+            <p>Objetos vacíos pasados por puro trámite para llenar argumentos, pero que nunca se usan.</p>
+        </div>
+        <div class="concept-card blue">
+            <span class="concept-icon">☎️</span>
+            <h3>Mock</h3>
+            <p>Un objeto que registra CÓMO ha sido llamado (con qué argumentos, cuántas veces).</p>
+        </div>
+        <div class="concept-card green">
+            <span class="concept-icon">🤖</span>
+            <h3>Stub</h3>
+            <p>Un objeto al que le programas respuestas "enlatadas" (devuelve 200 OK pase lo que pase).</p>
+        </div>
+        <div class="concept-card orange">
+            <span class="concept-icon">🕵️</span>
+            <h3>Spy / Fake</h3>
+            <p>Spies envuelven objetos reales. Fakes tienen lógica real simplificada (ej. DB en memoria).</p>
+        </div>
+    </div>
+
+    <h2>Ejercicio 12: El peligro del Mock (Cuándo NO Mockear)</h2>
+    <p>La regla de oro es: <strong>"No mockees lo que no te pertenece"</strong>. Si usas la librería <code>requests</code> de terceros, no mockees el objeto <code>requests.get</code> asumiendo cómo se comportará por dentro. Si la librería se actualiza y cambia su comportamiento, tu test seguirá pasando engañosamente.</p>
+    
+    <div class="info-box warning">
+        <span class="info-box-icon">⚠️</span>
+        <div class="info-box-text"><strong>Antipatrón:</strong> Mockear el ORM (como SQLAlchemy o Django ORM). Los ORMs son complejos; si los mockeas, estás testeando que sabes escribir mocks, no que tus consultas a BD funcionan. Usa una BD de test en su lugar.</div>
+    </div>
+
+    <h2>Ejercicio 13: Stubs Básicos (Monkeypatching en Pytest)</h2>
+    <p>Antes de usar librerías complejas, <code>pytest</code> ofrece el fixture integrado <code>monkeypatch</code>. Nos permite sobrescribir variables de entorno o funciones globales de forma segura (pytest lo restaura automáticamente tras el test).</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_13_monkeypatch.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import os
+import pytest
+
+def obtener_ruta_config():
+    # En producción esto podría ser /etc/myapp/config.yaml
+    return os.environ.get("APP_CONFIG_PATH", "/default/path/config.yaml")
+
+def test_leer_ruta_customizada(monkeypatch):
+    # 1. Usamos monkeypatch para forzar (Stub) una variable de entorno
+    monkeypatch.setenv("APP_CONFIG_PATH", "/tmp/test/config.yaml")
+    
+    # 2. Act
+    ruta = obtener_ruta_config()
+    
+    # 3. Assert
+    assert ruta == "/tmp/test/config.yaml"
+    # No hace falta limpiar, monkeypatch restaurará el os.environ original aquí.
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 14: El objeto <code>MagicMock</code> (Rastreo)</h2>
+    <p>De la librería estandar <code>unittest.mock</code> usamos <code>MagicMock</code> cuando queremos verificar CÓMO se interactuó con una dependencia. Se usa en Arquitectura Limpia para verificar que el Caso de Uso llamó al Repositorio correctamente.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_14_magicmock.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>from unittest.mock import MagicMock
+
+class ServicioEmail:
+    def enviar(self, destinatario, asunto):
+        print("Enviando un email real. ¡Cuesta dinero!")
+
+def notificar_usuario(email_service, email):
+    # Lógica de dominio brillante
+    asunto = f"Bienvenido {email}"
+    email_service.enviar(email, asunto)
+
+def test_notificar_usuario_llama_al_servicio():
+    # 1. Arrange: Creamos un Doble
+    mock_email = MagicMock()
+    
+    # 2. Act: Inyectamos el doble en lugar del servicio real (Dependency Injection)
+    notificar_usuario(mock_email, "test@test.com")
+    
+    # 3. Assert (Verificación de interacciones)
+    # Comprobamos que el método 'enviar' del mock fue invocado.
+    assert mock_email.enviar.called
+    
+    # Comprobamos exactamente con qué argumentos
+    mock_email.enviar.assert_called_once_with("test@test.com", "Bienvenido test@test.com")
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 15: Forzar retornos (return_value)</h2>
+    <p>A un Mock también podemos asgnarle un comportamiento de Stub estático a través de su atributo <code>return_value</code>.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_15_return_value.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>from unittest.mock import MagicMock
+
+class ServicioPagos:
+    def cobrar(self, importe):
+        raise NotImplementedError("Conecta con Stripe real")
+
+def procesar_carrito(servicio_pagos, total):
+    if servicio_pagos.cobrar(total) == "OK":
+        return "Pedido Completado"
+    return "Error en pago"
+
+def test_pago_exitoso():
+    # 1. Arrange
+    mock_pagos = MagicMock()
+    # Programamos la respuesta "enlatada" del mock
+    mock_pagos.cobrar.return_value = "OK"
+    
+    # 2. Act
+    resultado = procesar_carrito(mock_pagos, 50.0)
+    
+    # 3. Assert
+    assert resultado == "Pedido Completado"
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 16: Spies y Side Effects (Dinámicos y Errores)</h2>
+    <p>¿Qué pasa si queremos simular que el servicio de pagos lanza un Timeout? O peor aún... ¿que el servicio lance "Fallo" la primera vez, pero "OK" la segunda vez (simulando un reintento)? Usamos <code>side_effect</code>.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_16_side_effect.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>from unittest.mock import MagicMock
+import pytest
+
+def test_pago_con_timeout():
+    mock_pagos = MagicMock()
+    # side_effect levanta una excepción real si le pasamos una clase de Error
+    mock_pagos.cobrar.side_effect = TimeoutError("Stripe no responde")
+    
+    with pytest.raises(TimeoutError):
+        # El código a testear explotará, tal como queríamos simular
+        mock_pagos.cobrar(100.0)
+
+def test_pago_falla_luego_acierta():
+    mock_pagos = MagicMock()
+    # Al pasar una lista, cada llamada secuencial recibe el siguiente valor
+    mock_pagos.cobrar.side_effect = [ConnectionError, "OK"]
+    
+    # Llamada 1: Explotaría si no la controlamos
+    with pytest.raises(ConnectionError):
+        mock_pagos.cobrar(100.0)
+        
+    # Llamada 2: Funciona
+    assert mock_pagos.cobrar(100.0) == "OK"
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 17: Mock de Red (No uses HTTP real)</h2>
+    <p>Nunca, bajo ningún concepto, tus tests unitarios deben hacer una petición HTTP real hacia internet. Serán lentos, intermitentes (flaky tests) y en un pipeline bloqueado sin internet, fallarán. Usamos un módulo como <code>responses</code> o <code>httpx-mock</code> para interceptar peticiones del sistema.</p>
+
+    <div class="two-col">
+        <div class="mini-card">
+            <h5>❌ Mockear la librería (Malo)</h5>
+            <ul><li><code>mock_requests.get.return_value = ...</code></li><li>La librería puede repactar por debajo.</li></ul>
+        </div>
+        <div class="mini-card">
+            <h5>✅ Mockear a nivel de socket (Bueno)</h5>
+            <ul><li>Librerías como <code>responses</code>.</li><li>Interceptan peticiones HTTP a bajo nivel y simulan el tráfico real.</li></ul>
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_17_responses.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import requests
+import responses # pip install responses
+
+@responses.activate # Decorador que enjaula la red
+def test_peticion_api_mockeada():
+    # Programamos el router HTTP virtual para interceptar la llamada
+    responses.add(
+        responses.GET,
+        "https://api.github.com/users/deivit",
+        json={"login": "deivit", "company": "NeuralBrain"},
+        status=200
+    )
+    
+    # Ejecutamos el código real, convencido de que habla con GitHub
+    respuesta = requests.get("https://api.github.com/users/deivit")
+    data = respuesta.json()
+    
+    assert data["company"] == "NeuralBrain"
+    assert respuesta.status_code == 200
+    # responses se asegura de que la petición no salió a internet
+</code></pre>
+    </div>
+
+</div>

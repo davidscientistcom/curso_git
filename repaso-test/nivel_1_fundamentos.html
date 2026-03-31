@@ -1,0 +1,187 @@
+<link rel="stylesheet" href="styles.css">
+<div class="content">
+    <h1>🚀 Nivel 1: Fundamentos Absolutos del Testing (Pytest)</h1>
+    <p>Bienvenidos al laboratorio progresivo de testing. Soy tu Lead QA y hoy vamos a desgranar cómo asegurar la calidad de nuestro código Python. Olvida <code>unittest</code> y su verbosidad heredada de Java; aquí dominaremos <code>pytest</code>, el estándar unánime de la industria.</p>
+
+    <div class="concept-grid">
+        <div class="concept-card blue">
+            <span class="concept-icon">🔍</span>
+            <h3>Test Automático</h3>
+            <p>Código que ejecuta otro código y verifica que el resultado es el esperado de forma automatizada.</p>
+        </div>
+        <div class="concept-card green">
+            <span class="concept-icon">💎</span>
+            <h3>Pytest</h3>
+            <p>Framework moderno de testing en Python. Usa <code>assert</code> nativo en un enfoque declarativo y puro.</p>
+        </div>
+        <div class="concept-card purple">
+            <span class="concept-icon">⚖️</span>
+            <h3>Assertion</h3>
+            <p>Una afirmación matemática de que una condición debe ser <code>True</code>. Si es <code>False</code>, el test falla.</p>
+        </div>
+    </div>
+
+    <h2>Ejercicio 01: El Primer Assert y la disección del error</h2>
+    <p>La unidad más fundamental de un test es una función cuyo nombre empieza por <code>test_</code>. Si en su interior un <code>assert</code> falla, Pytest capturará las variables involucradas e imprimirá un reporte (traceback) riquísimo en contexto.</p>
+    
+    <div class="info-box info">
+        <span class="info-box-icon">💡</span>
+        <div class="info-box-text"><strong>Analogía:</strong> Piensa en un <code>assert</code> como el inspector de aduanas. Tú le dices: "El paquete debe pesar 5kg". Él pesa el paquete, y si pesa 6kg, hace saltar una sirena detallando exactamente qué paquete falló y por qué diferencia. Si todo cuadra, te deja pasar en silencio.</div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_01_assert.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>def calcular_descuento(precio_base: float, porcentaje: float) -> float:
+    """Aplica un descuento. Si el porcentaje es 10 sobre 100, devuelve 90."""
+    descuento = precio_base * (porcentaje / 100)
+    return precio_base - descuento
+
+# Nuestro primer test
+def test_calcular_descuento_basico():
+    # 1. Arrange (Preparar)
+    precio = 100.0
+    descuento = 10.0
+    
+    # 2. Act (Actuar)
+    resultado = calcular_descuento(precio, descuento)
+    
+    # 3. Assert (Verificar)
+    assert resultado == 90.0, "El descuento del 10% sobre 100 debería resultar en 90"
+
+def test_calculo_con_decimales():
+    # Pytest nos dirá exactamente los valores si esto falla
+    resultado = calcular_descuento(19.99, 5.0)
+    # Cuidado: la aritmética flotante en Python puede ser engañosa.
+    # Por eso solemos redondear o usar pytest.approx
+    assert round(resultado, 2) == 18.99
+</code></pre>
+    </div>
+    
+    <p>Para ejecutar esto en la terminal: <code>pytest test_01_assert.py -v</code></p>
+
+    <h2>Ejercicio 02: Testeando Excepciones (Context Managers)</h2>
+    <p>No solo testeamos el camino feliz. <strong>Un código robusto es aquel que falla de forma controlada y esperada</strong> cuando recibe basura. ¿Cómo comprobamos que nuestra función levanta un error sin que ese error detenga la ejecución de la suite de tests?</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_02_exceptions.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+
+def dividir(a: float, b: float) -> float:
+    if b == 0:
+        raise ValueError("División por cero detectada. Uso indebido.")
+    return a / b
+
+def test_dividir_por_cero_levanta_value_error():
+    # Usamos pytest.raises como un 'Context Manager' (un bloque with).
+    # Todo lo que ocurre dentro de este bloque DEBE levantar un ValueError.
+    # Si no lo levanta, el test fallará por "Falso Positivo".
+    with pytest.raises(ValueError) as exception_info:
+        dividir(10.0, 0.0)
+        
+    # Podemos inspeccionar el error exacto que se capturó:
+    assert "División por cero" in str(exception_info.value)
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 03: Agrupación y Descubrimiento (Clases vs Funciones puras)</h2>
+    <p>En Java o en el antiguo <code>unittest</code> de Python, todo test debía residir forzosamente dentro de una Clase que heredaba de <code>TestCase</code>. En Pytest abrazamos el paradigma funcional: una función es suficiente. No obstante, las clases son útiles <strong>exclusivamente para agrupar tests relacionados lógicamente</strong>.</p>
+
+    <div class="two-col">
+        <div class="mini-card">
+            <h5>✅ Funciones puras (Recomendado)</h5>
+            <ul>
+                <li>Menos boilerplate y sangrías.</li>
+                <li>Fáciles de leer de arriba a abajo.</li>
+                <li>Ideal para tests unitarios aislados.</li>
+            </ul>
+        </div>
+        <div class="mini-card">
+            <h5>🏢 Agrupación en Clases (Test Suites)</h5>
+            <ul>
+                <li>Agrupa escenarios del mismo componente.</li>
+                <li><strong>OBLIGATORIO:</strong> El nombre de la clase debe empezar por <code>Test</code>.</li>
+                <li>No deben tener método <code>__init__</code>.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_03_classes.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>class UserManager:
+    def __init__(self):
+        self.users = []
+        
+    def add_user(self, name):
+        self.users.append(name)
+
+# Agrupamos todos los tests relacionados con UserManager bajo una clase.
+class TestUserManager:
+    
+    # Cada método es un test si empieza por test_
+    def test_anadir_usuario_incrementa_conteo(self):
+        manager = UserManager()
+        manager.add_user("Alice")
+        assert len(manager.users) == 1
+
+    def test_anadir_multiples_usuarios(self):
+        manager = UserManager()
+        manager.add_user("Alice")
+        manager.add_user("Bob")
+        assert "Bob" in manager.users
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 04: Selección, Filtros e Ignorados (Marcadores)</h2>
+    <p>Cuando tu suite de tests crece a miles de funciones, no querrás ejecutarlos todos cada vez que cambias una coma. Pytest ofrece "Marcadores" (metadata que le pegamos a una función) y filtros de consola.</p>
+
+    <div class="info-box warning">
+        <span class="info-box-icon">⚠️</span>
+        <div class="info-box-text"><strong>¡Cuidado!</strong> Nunca uses <code>if True: return</code> para saltarte un test roto en tu código. Te olvidarás de él. Usa siempre <code>@pytest.mark.skip</code> con una razón formal. Así aparecerá subrayado en amarillo en los reportes de QA.</div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_04_markers.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+import sys
+
+def funcion_lenta_y_pesada():
+    """Simula un proceso que tarda 1 hora."""
+    return "completado"
+
+# 1. SKIPPING EXTERNO: Saltamos este test con una justificación.
+@pytest.mark.skip(reason="Este test tarda demasiado. Solo para nightly builds.")
+def test_muy_lento():
+    resultado = funcion_lenta_y_pesada()
+    assert resultado == "completado"
+
+# 2. CONDITIONAL SKIP: Saltar solo si se cumple una regla del sistema.
+@pytest.mark.skipif(sys.platform == "win32", reason="No funciona en sistemas Windows")
+def test_funcionalidad_solo_linux():
+    assert True
+
+# 3. EXPECTED FAILURE (xfail): Sabemos que está roto, pero queremos dejar constancia temporal.
+@pytest.mark.xfail(reason="Ticket JIRA-123: El proveedor externo cambió la API")
+def test_conexion_proveedor_actualmente_rota():
+    1 / 0  # Esto fallaría, pero pytest lo marca como "fallo esperado rojo/amarillo"
+
+# 4. MARCAS CUSTOMIZADAS (Para filtrar desde la consola)
+@pytest.mark.auth
+def test_login_usuario():
+    # Ejecutable con: pytest -m auth
+    assert "token" != None
+</code></pre>
+    </div>
+
+</div>

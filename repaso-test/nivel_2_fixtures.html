@@ -1,0 +1,139 @@
+<link rel="stylesheet" href="styles.css">
+<div class="content">
+    <h1>🏗️ Nivel 2: Inversión de Control con Fixtures</h1>
+    <p>En el nivel anterior iniciábamos variables dentro de cada test. Eso no es escalable. ¿Qué pasa si necesitamos un usuario preparado con permisos de administrador en 50 tests distintos? Aquí entran los <strong>Fixtures</strong>. Un Fixture inyecta dependencias automáticamente en la firma del test.</p>
+
+    <div class="info-box info">
+        <span class="info-box-icon">💡</span>
+        <div class="info-box-text"><strong>Analogía:</strong> Un Fixture es como el "Mise en place" de un chef. En lugar de que el chef limpie, corte y prepare las cebollas cada vez que va a cocinar un plato, un ayudante (Pytest) se las entrega ya picadas exactamente como él las pidió, listas en su mesa de trabajo.</div>
+    </div>
+
+    <h2>Ejercicio 05: Setup inyectado básico</h2>
+    <p>Un fixture es una función decorada con <code>@pytest.fixture</code> que retorna un recurso. Pytest busca si tú pides ese recurso como argumento en el test y lo llama mágicamente.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_05_fixtures_basicos.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+
+# Definición del Fixture ("El preparador")
+@pytest.fixture
+def base_de_datos_lista():
+    # Simulamos preparar la conexión
+    print("\n[SETUP] Conectando a Base de Datos en memoria...")
+    return {"users": ["alice", "bob"], "status": "connected"}
+
+# El Test pide el fixture por su nombre exacto en los parámetros
+def test_leer_usuarios(base_de_datos_lista):
+    # Ya tenemos el objeto listo para usar.
+    assert "alice" in base_de_datos_lista["users"]
+    assert base_de_datos_lista["status"] == "connected"
+
+def test_no_hay_admin(base_de_datos_lista):
+    # El fixture se ejecuta de nuevo para este test (aislamiento total)
+    assert "admin" not in base_de_datos_lista["users"]
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 06: Ciclos de Vida (Scopes)</h2>
+    <p>¿Qué pasa si el recurso cuesta mucha memoria o tiempo (ejemplo: leer un modelo de IA de 1GB)? Ejecutar el fixture en <i>cada</i> función es ruinoso. Pytest nos permite usar <code>scope</code>.</p>
+
+    <div class="two-col">
+        <div class="mini-card">
+            <h5>⚡ scope="function" (Por defecto)</h5>
+            <ul><li>Se recrea en <strong>cada</strong> método de test.</li><li>Aislamiento máximo, seguridad máxima.</li></ul>
+        </div>
+        <div class="mini-card">
+            <h5>🐢 scope="session"</h5>
+            <ul><li>Se crea <strong>una sola vez</strong> por cada corrida de pytest.</li><li>Ideal para conexiones pesadas (Postgres/Redis).</li></ul>
+        </div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_06_scopes.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+import time
+
+# Al usar scope="session", esto solo tardará 2 segundos la PRIMERA vez.
+@pytest.fixture(scope="session")
+def modelo_ia_pesado():
+    print("\n[SESIÓN] Inicializando Red Neuronal...")
+    time.sleep(2)  # Simula carga pesada
+    return "Modelo V3.0 Cargado"
+
+def test_ia_inferencia_1(modelo_ia_pesado):
+    assert "V3.0" in modelo_ia_pesado
+
+def test_ia_inferencia_2(modelo_ia_pesado):
+    # Este test no espera 2 segundos. Reutiliza el objeto de memoria global.
+    assert "Cargado" in modelo_ia_pesado
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 07: Limpieza Garantizada (Teardown con Yield)</h2>
+    <p>¿Qué ocurre cuando creamos una fila en base de datos para testear y necesitamos eliminarla para no manchar el entorno? El fixture puede pausar devolviendo el valor usando <code>yield</code>, y todo el código escrito debajo será el <strong>Teardown</strong>.</p>
+
+    <div class="info-box warning">
+        <span class="info-box-icon">⚠️</span>
+        <div class="info-box-text"><strong>¡Cuidado!</strong> Nunca uses una función externa genérica de limpieza al final de tu test. Si un <code>assert</code> falla arriba, la ejecución del test se corta inmediatamente y nunca llegaría a tu limpieza. El fixture con <code>yield</code> garantiza la limpieza *incluso si hay un error brutal* en el test.</div>
+    </div>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — test_07_teardown_yield.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code>import pytest
+
+# Simulamos crear un archivo y borrarlo temporalmente
+@pytest.fixture
+def archivo_temporal():
+    # --- BLOQUE SETUP ---
+    archivo = "temp_config.txt"
+    print(f"\n[SETUP] Escribiendo archivo: {archivo}")
+    open(archivo, "w").write("config=true")
+    
+    # Pausamos y devolvemos la respuesta al test.
+    yield archivo
+    
+    # --- BLOQUE TEARDOWN ---
+    # Pytest retomará esta línea cuando el test termine (ya sea por success o porque falló)
+    import os
+    print(f"\n[TEARDOWN] Borrando archivo: {archivo}")
+    if os.path.exists(archivo):
+        os.remove(archivo)
+
+def test_leer_archivo_config(archivo_temporal):
+    contenido = open(archivo_temporal).read()
+    assert "config=true" in contenido
+    # Imagina que forzamos un fallo:
+    # assert False --> Pytest ejecutará el os.remove() de arriba igualmente.
+</code></pre>
+    </div>
+
+    <h2>Ejercicio 08: El Archivo Mágico (conftest.py)</h2>
+    <p>Poner los fixtures en el mismo archivo del test está bien al principio. Pero pronto querremos que todos los tests de nuestra app tengan acceso a <code>archivo_temporal</code>. Para ello, creamos un archivo en la raíz de nuestro directorio de tests llamado <strong><code>conftest.py</code></strong>.</p>
+    
+    <p>Cualquier fixture definido en un <code>conftest.py</code> estará <strong>automáticamente disponible globalmente</strong> para todos los test que cuelguen de ese directorio, sin necesidad de importarlo.</p>
+
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-lang">python — conftest.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+        <pre><code># Ubicación: /tests/conftest.py
+import pytest
+
+@pytest.fixture(scope="session")
+def engine_postgres():
+    """Conexión global compartida por toda la suite de pruebas."""
+    return "sqlite:///:memory:"  # Usamos sqlite en memoria como mockup
+</code></pre>
+    </div>
+
+</div>
